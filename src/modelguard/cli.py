@@ -23,15 +23,24 @@ from modelguard.repair import (
     RepairValidationError,
     RepairValidator,
 )
-from modelguard.reporting import render_diagnosis_markdown, render_repair_markdown
+from modelguard.reporting import (
+    DataHubIncidentWriter,
+    GitHubCommentWriter,
+    PublicationCoordinator,
+    PublicationError,
+    PublicationInputs,
+    render_diagnosis_markdown,
+    render_repair_markdown,
+    write_publication_outputs,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="modelguard",
         description=(
-            "Detect ML regressions, collect DataHub evidence, rank root causes and "
-            "validate constrained repairs."
+            "Detect ML regressions, collect DataHub evidence, rank root causes, "
+            "validate constrained repairs and publish verified outcomes."
         ),
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -99,6 +108,44 @@ def build_parser() -> argparse.ArgumentParser:
     repair.add_argument("--validation-output", type=Path, required=True)
     repair.add_argument("--patch-output", type=Path, required=True)
     repair.add_argument("--markdown-output", type=Path)
+
+    publish = subparsers.add_parser(
+        "publish",
+        help="Publish a validated repair to GitHub and DataHub.",
+    )
+    publish.add_argument("--diagnosis", type=Path, required=True)
+    publish.add_argument("--repair-plan", type=Path, required=True)
+    publish.add_argument("--validation", type=Path, required=True)
+    publish.add_argument("--patch", type=Path, required=True)
+    publish.add_argument("--repository")
+    publish.add_argument("--pull-request", type=int)
+    publish.add_argument("--datahub-asset-urn")
+    publish.add_argument(
+        "--github-mode",
+        choices=("off", "fixture", "live"),
+        default="fixture",
+    )
+    publish.add_argument(
+        "--datahub-mode",
+        choices=("off", "fixture", "live"),
+        default="fixture",
+    )
+    publish.add_argument(
+        "--github-state",
+        type=Path,
+        default=Path("artifacts/github_publication_state.json"),
+    )
+    publish.add_argument(
+        "--datahub-state",
+        type=Path,
+        default=Path("artifacts/datahub_incident_state.json"),
+    )
+    publish.add_argument("--github-api-url", default="https://api.github.com")
+    publish.add_argument("--datahub-graphql-url")
+    publish.add_argument("--apply", action="store_true")
+    publish.add_argument("--output", type=Path, required=True)
+    publish.add_argument("--markdown-output", type=Path)
+    publish.add_argument("--comment-output", type=Path)
 
     return parser
 
@@ -212,6 +259,52 @@ def run_repair(args: argparse.Namespace) -> int:
     return 5
 
 
+def run_publish(args: argparse.Namespace) -> int:
+    diagnosis = _read_json(args.diagnosis)
+    repair_plan = _read_json(args.repair_plan)
+    validation = _read_json(args.validation)
+    try:
+        patch = args.patch.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"cannot read {args.patch}: {exc}") from exc
+    repository = args.repository or diagnosis.get("repository")
+    pull_request = args.pull_request or diagnosis.get("pull_request")
+    if not isinstance(repository, str):
+        raise PublicationError("repository is required for publication")
+    if not isinstance(pull_request, int):
+        raise PublicationError("pull request is required for publication")
+    inputs = PublicationInputs(
+        diagnosis=diagnosis,
+        repair_plan=repair_plan,
+        validation=validation,
+        patch=patch,
+        repository=repository,
+        pull_request=pull_request,
+        datahub_asset_urn=args.datahub_asset_urn,
+    )
+    coordinator = PublicationCoordinator(
+        github_writer=GitHubCommentWriter(
+            mode=args.github_mode,
+            fixture_state=args.github_state,
+            api_url=args.github_api_url,
+        ),
+        datahub_writer=DataHubIncidentWriter(
+            mode=args.datahub_mode,
+            fixture_state=args.datahub_state,
+            graphql_url=args.datahub_graphql_url,
+        ),
+    )
+    receipt = coordinator.publish(inputs, apply=args.apply)
+    write_publication_outputs(
+        receipt,
+        output=args.output,
+        markdown_output=args.markdown_output,
+        comment_output=args.comment_output,
+    )
+    print(json.dumps(receipt.to_dict(), indent=2, sort_keys=True))
+    return 0 if receipt.status in {"dry_run", "published"} else 6
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -254,10 +347,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             return run_diagnose(args)
         if args.command == "repair":
             return run_repair(args)
+        if args.command == "publish":
+            return run_publish(args)
     except (
         ConfigurationError,
         DataHubContextError,
         DiagnosisError,
+        PublicationError,
         RepairGenerationError,
         RepairValidationError,
         ValueError,
