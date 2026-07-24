@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -25,7 +25,7 @@ class DiagnosisError(RuntimeError):
 class DiagnosisAgent:
     """Generate and rank evidence-backed hypotheses without inventing facts."""
 
-    policy: RankingPolicy = RankingPolicy()
+    policy: RankingPolicy = field(default_factory=RankingPolicy)
 
     def diagnose(
         self,
@@ -44,9 +44,13 @@ class DiagnosisAgent:
         if not changes.changed_files:
             warnings.append("No changed-file evidence was supplied.")
         if not changes.observations:
-            warnings.append("No deterministic runtime or data-profile observations were supplied.")
+            warnings.append(
+                "No deterministic runtime or data-profile observations were supplied."
+            )
         if context.provider == "fixture":
-            warnings.append("Diagnosis used deterministic fixture context, not a live DataHub instance.")
+            warnings.append(
+                "Diagnosis used deterministic fixture context, not a live DataHub instance."
+            )
 
         return DiagnosisReport(
             diagnosis_id=diagnosis_id(evaluation, context, changes),
