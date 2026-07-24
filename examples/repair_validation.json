@@ -1,0 +1,113 @@
+{
+  "changed_files": [
+    "src/features/customer_features.py"
+  ],
+  "commands": [
+    {
+      "command": [
+        "{python}",
+        "-m",
+        "py_compile",
+        "src/features/customer_features.py"
+      ],
+      "duration_seconds": 0.0371,
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "{python}",
+        "-m",
+        "pytest",
+        "tests/test_customer_features.py",
+        "-q"
+      ],
+      "duration_seconds": 0.2123,
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "...                                                                      [100%]\n3 passed in 0.01s\n",
+      "timed_out": false
+    },
+    {
+      "command": [
+        "{python}",
+        "evaluate_model.py",
+        "--output",
+        "artifacts/post_repair_evaluation.json"
+      ],
+      "duration_seconds": 0.038,
+      "return_code": 0,
+      "stderr": "",
+      "stdout": "{\"candidate\": 0.842, \"invalid_values\": 0, \"metric\": \"f1_score\", \"rows_evaluated\": 5}\n",
+      "timed_out": false
+    }
+  ],
+  "isolated_workspace": true,
+  "metric_restored": true,
+  "patch_guard": {
+    "approved": true,
+    "checks": [
+      "leading diagnosis has high confidence and score >= 0.8",
+      "patch changes at most 1 file(s)",
+      "path is relative and traversal-safe: src/features/customer_features.py",
+      "line and token limits pass for src/features/customer_features.py"
+    ],
+    "policy": {
+      "allowed_suffixes": [
+        ".py"
+      ],
+      "forbidden_prefixes": [
+        ".github/",
+        "config/",
+        "scripts/",
+        "src/modelguard/"
+      ],
+      "forbidden_tokens": [
+        "eval(",
+        "exec(",
+        "os.system(",
+        "subprocess.",
+        "requests.",
+        "socket.",
+        "__import__("
+      ],
+      "max_added_lines": 8,
+      "max_files": 1,
+      "max_removed_lines": 4
+    },
+    "violations": []
+  },
+  "post_repair_evaluation": {
+    "candidate": 0.842,
+    "gate": {
+      "baseline": 0.842,
+      "candidate": 0.842,
+      "change": 0.0,
+      "direction": "higher_is_better",
+      "maximum_allowed_regression": 0.02,
+      "metric": "f1_score",
+      "regression_amount": 0.0,
+      "status": "passed"
+    },
+    "invalid_values": 0,
+    "metric": "f1_score",
+    "rows_evaluated": 5
+  },
+  "pre_repair_evaluation": {
+    "baseline": 0.842,
+    "candidate": 0.771,
+    "change": -0.071,
+    "direction": "higher_is_better",
+    "maximum_allowed_regression": 0.02,
+    "metric": "f1_score",
+    "regression_amount": 0.071,
+    "status": "failed"
+  },
+  "repair_id": "repair-d359e2c30c02",
+  "source_workspace_unchanged": true,
+  "status": "validated",
+  "validation_id": "validation-fff0b9f0b068",
+  "warnings": []
+}
