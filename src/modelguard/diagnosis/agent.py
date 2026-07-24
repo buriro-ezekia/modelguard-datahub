@@ -11,8 +11,8 @@ from modelguard.diagnosis.hypotheses import (
     ChangeSet,
     DiagnosisReport,
     EvidenceBuilder,
-    diagnosis_id,
 )
+from modelguard.diagnosis.identity import diagnosis_id
 from modelguard.diagnosis.ranking import RankingPolicy, rank_hypotheses
 from modelguard.models import ContextSnapshot
 
