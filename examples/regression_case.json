@@ -1,0 +1,52 @@
+{
+  "repository": "buriro-ezekia/modelguard-datahub",
+  "commit_sha": "a817f42",
+  "pull_request": 12,
+  "changed_files": [
+    {
+      "path": "src/features/customer_features.py",
+      "status": "modified",
+      "additions": [
+        "monthly_spend = total_spend / account_age_months"
+      ],
+      "deletions": [
+        "monthly_spend = safe_divide(total_spend, account_age_months)"
+      ],
+      "symbols": [
+        "calculate_monthly_spend"
+      ],
+      "fields": [
+        "monthly_spend",
+        "account_age_months",
+        "total_spend"
+      ],
+      "assets": [
+        "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "kind": "distribution",
+      "status": "failed",
+      "field": "monthly_spend",
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)",
+      "summary": "Candidate monthly_spend contains 37 infinite values; the baseline contains none.",
+      "details": {
+        "baseline_infinite": 0,
+        "candidate_infinite": 37
+      }
+    },
+    {
+      "kind": "data-quality",
+      "status": "warning",
+      "field": "account_age_months",
+      "asset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,raw.raw_customers,PROD)",
+      "summary": "Twelve source rows have account_age_months equal to zero in both baseline and candidate data.",
+      "details": {
+        "baseline_zero_rows": 12,
+        "candidate_zero_rows": 12
+      }
+    }
+  ]
+}
