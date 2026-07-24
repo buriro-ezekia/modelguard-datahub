@@ -32,6 +32,8 @@ def test_cli_returns_failure_and_writes_json(tmp_path: Path) -> None:
     assert exit_code == 1
     assert payload["status"] == "failed"
     assert payload["metric"] == "f1_score"
+    assert payload["change"] == -0.071
+    assert payload["regression_amount"] == 0.071
 
 
 def test_cli_returns_success_within_tolerance() -> None:
