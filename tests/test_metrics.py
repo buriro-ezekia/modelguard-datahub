@@ -56,6 +56,19 @@ def test_improvement_never_counts_as_regression() -> None:
     assert evaluation.regression_amount == 0.0
 
 
+def test_serialised_values_remove_binary_floating_point_noise() -> None:
+    evaluation = MetricEvaluation(
+        policy=MetricPolicy("f1_score", maximum_allowed_regression=0.02),
+        baseline=0.842,
+        candidate=0.771,
+    )
+
+    payload = evaluation.to_dict()
+
+    assert payload["change"] == -0.071
+    assert payload["regression_amount"] == 0.071
+
+
 @pytest.mark.parametrize("value", [-0.01, float("inf"), float("nan")])
 def test_invalid_policy_thresholds_are_rejected(value: float) -> None:
     with pytest.raises(ValueError):
