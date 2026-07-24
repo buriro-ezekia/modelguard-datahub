@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from typing import Any, Literal
 
 MetricDirection = Literal["higher_is_better", "lower_is_better"]
@@ -74,5 +74,4 @@ class MetricEvaluation:
             "regression_amount": self.regression_amount,
             "maximum_allowed_regression": self.policy.maximum_allowed_regression,
             "status": self.status,
-            "policy": asdict(self.policy),
         }
