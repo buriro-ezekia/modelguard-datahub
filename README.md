@@ -6,8 +6,8 @@ ModelGuard is an open-source, metadata-aware CI agent for machine-learning syste
 
 ## Project status
 
-- **Phase 1 — complete:** deterministic metric-regression gate.
-- **Phase 2 — complete:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
+- **Phase 1 — merged:** deterministic metric-regression gate.
+- **Phase 2 — verified:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
 - **Phase 3 — next:** evidence-backed root-cause hypothesis generation and ranking.
 
 Phase 2 is deliberately read-only. It does not generate repairs, post GitHub comments or write incidents back to DataHub.
