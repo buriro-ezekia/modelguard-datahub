@@ -44,7 +44,26 @@ A review-ready report is posted and the outcome is written to DataHub
 
 - Python 3.11 or later
 
-### Installation
+### GitHub Codespaces
+
+The repository includes a development-container configuration. A newly created or rebuilt Codespace installs the project and runs the quality checks automatically.
+
+For an already-running Codespace, run:
+
+```bash
+source scripts/bootstrap_codespace.sh
+```
+
+The bootstrap script:
+
+- discovers the active Python installation's scripts directory;
+- adds that directory to the current `PATH` and persists it in `~/.bashrc`;
+- installs the project and development dependencies;
+- runs Ruff and pytest.
+
+This prevents warnings caused by `modelguard`, `pytest` or `ruff` being installed outside the current shell's `PATH`.
+
+### Local installation
 
 ```bash
 git clone https://github.com/buriro-ezekia/modelguard-datahub.git
@@ -56,19 +75,30 @@ Activate the environment, then install the development dependencies:
 
 ```bash
 python -m pip install --upgrade pip
-pip install -e ".[dev]"
+python -m pip install -e ".[dev]"
 ```
 
 ### Run the tests
 
 ```bash
-ruff check .
-pytest
+python -m ruff check .
+python -m pytest
 ```
 
 ## Evaluate a metric
 
 The following command compares a candidate F1 score with its approved baseline and writes a machine-readable artefact:
+
+```bash
+python -m modelguard evaluate \
+  --metric f1_score \
+  --baseline 0.842 \
+  --candidate 0.771 \
+  --max-regression 0.02 \
+  --output artifacts/evaluation.json
+```
+
+After running the Codespaces bootstrap or activating a correctly configured virtual environment, the shorter console command is also available:
 
 ```bash
 modelguard evaluate \
@@ -96,10 +126,12 @@ Example output:
 }
 ```
 
+JSON values are normalised to remove insignificant binary floating-point noise while the regression decision continues to use the original numerical values.
+
 For error metrics such as RMSE, use:
 
 ```bash
-modelguard evaluate \
+python -m modelguard evaluate \
   --metric rmse \
   --baseline 2.0 \
   --candidate 2.8 \
