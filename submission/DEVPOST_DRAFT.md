@@ -73,5 +73,5 @@ Python, DataHub OSS, DataHub MCP Server, DataHub Python SDK, GraphQL, GitHub Act
 - DataHub technologies: DataHub OSS/Core Platform; DataHub MCP Server; DataHub Python SDK; GraphQL incident API
 - Hosted project URL: `https://buriro-ezekia.github.io/modelguard-datahub/`
 - Public repository: `https://github.com/buriro-ezekia/modelguard-datahub`
-- Demonstration video: `PUBLIC_VIDEO_URL_TO_ADD_AFTER_RECORDING`
+- Demonstration video: `https://youtu.be/S96pbK7k_nc`
 - License: Apache License 2.0
