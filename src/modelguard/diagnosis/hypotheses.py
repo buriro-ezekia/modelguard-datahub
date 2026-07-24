@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict, dataclass, field as dataclass_field
+from dataclasses import asdict, dataclass
+from dataclasses import field as dataclass_field
 from typing import Any, Literal
 
 from modelguard.models import ContextSnapshot
