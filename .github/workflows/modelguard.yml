@@ -53,6 +53,24 @@ jobs:
       - name: Test
         run: pytest
 
+      - name: Verify broken demonstration
+        run: |
+          (
+            cd demo/broken_change
+            python evaluate_model.py \
+              --output ../../artifacts/pre_repair_demo.json
+          )
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          result = json.loads(
+              Path("artifacts/pre_repair_demo.json").read_text(encoding="utf-8")
+          )
+          assert result["candidate"] == 0.771
+          assert result["invalid_values"] > 0
+          PY
+
       - name: Collect deterministic DataHub context
         run: |
           python -m modelguard context check --provider fixture
@@ -84,11 +102,52 @@ jobs:
           assert report["hypotheses"][0]["confidence"] == "high"
           PY
 
+      - name: Generate and validate constrained repair
+        run: |
+          python -m modelguard repair \
+            --diagnosis artifacts/diagnosis_report.json \
+            --evaluation examples/evaluation_failed.json \
+            --case examples/repair_case.json \
+            --workspace demo/broken_change \
+            --plan-output artifacts/repair_plan.json \
+            --validation-output artifacts/repair_validation.json \
+            --patch-output artifacts/validated_patch.diff \
+            --markdown-output artifacts/validated_repair_report.md
+
+      - name: Verify validated repair
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          validation = json.loads(
+              Path("artifacts/repair_validation.json").read_text(encoding="utf-8")
+          )
+          patch = Path("artifacts/validated_patch.diff").read_text(encoding="utf-8")
+          source = Path(
+              "demo/broken_change/src/features/customer_features.py"
+          ).read_text(encoding="utf-8")
+
+          assert validation["status"] == "validated"
+          assert validation["patch_guard"]["approved"] is True
+          assert validation["metric_restored"] is True
+          assert validation["source_workspace_unchanged"] is True
+          assert validation["post_repair_evaluation"]["candidate"] == 0.842
+          assert validation["post_repair_evaluation"]["invalid_values"] == 0
+          assert "if account_age_months <= 0:" in patch
+          assert "if account_age_months <= 0:" not in source
+          PY
+
       - name: Upload ModelGuard evidence artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: modelguard-phase-3-evidence
+          name: modelguard-phase-4-validated-repair
           path: |
+            artifacts/pre_repair_demo.json
             artifacts/context_snapshot.json
             artifacts/diagnosis_report.json
             artifacts/root_cause_report.md
+            artifacts/repair_plan.json
+            artifacts/repair_validation.json
+            artifacts/validated_patch.diff
+            artifacts/validated_repair_report.md
