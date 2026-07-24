@@ -1,0 +1,28 @@
+{
+  "category": "feature_transformation",
+  "confidence": "high",
+  "diagnosis_id": "diag-2f83c16bbe31",
+  "hypothesis_id": "H001",
+  "patches": [
+    {
+      "added_lines": 2,
+      "diff": "--- a/src/features/customer_features.py\n+++ b/src/features/customer_features.py\n@@ -3,4 +3,6 @@\n \n def calculate_monthly_spend(total_spend: float, account_age_months: int) -> float:\n     \"\"\"Return average spend per active account month.\"\"\"\n+    if account_age_months <= 0:\n+        return 0.0\n     return total_spend / account_age_months\n",
+      "original_content": "\"\"\"Candidate feature transformation containing the demonstrated regression.\"\"\"\n\n\ndef calculate_monthly_spend(total_spend: float, account_age_months: int) -> float:\n    \"\"\"Return average spend per active account month.\"\"\"\n    return total_spend / account_age_months\n",
+      "original_sha256": "59e77fb436bf3b355cf06c4c21255e6f2f0743011eca15a15f990b8c98d81698",
+      "patched_content": "\"\"\"Candidate feature transformation containing the demonstrated regression.\"\"\"\n\n\ndef calculate_monthly_spend(total_spend: float, account_age_months: int) -> float:\n    \"\"\"Return average spend per active account month.\"\"\"\n    if account_age_months <= 0:\n        return 0.0\n    return total_spend / account_age_months\n",
+      "patched_sha256": "0e99471aa0bb7baf8f95d9c3e30008d31ede50a908b315f86bfdd5d1379b83be",
+      "path": "src/features/customer_features.py",
+      "removed_lines": 0
+    }
+  ],
+  "rationale": "Insert an explicit non-positive denominator guard before the diagnosed division while preserving all other source lines.",
+  "repair_id": "repair-d359e2c30c02",
+  "safety_notes": [
+    "The source workspace is not modified during generation.",
+    "The proposal changes one Python file and one function only.",
+    "Validation must run in an isolated copy before the patch is considered usable."
+  ],
+  "score": 1.0,
+  "status": "proposed",
+  "strategy": "guarded_division"
+}
