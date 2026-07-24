@@ -1,0 +1,10 @@
+{
+  "baseline": 0.842,
+  "candidate": 0.771,
+  "change": -0.071,
+  "direction": "higher_is_better",
+  "maximum_allowed_regression": 0.02,
+  "metric": "f1_score",
+  "regression_amount": 0.071,
+  "status": "failed"
+}

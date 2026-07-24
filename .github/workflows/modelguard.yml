@@ -7,7 +7,6 @@ on:
   pull_request:
     branches:
       - main
-      - feat/phase-1-regression-gate
 
 permissions:
   contents: read
@@ -61,8 +60,35 @@ jobs:
             --provider fixture \
             --output artifacts/context_snapshot.json
 
-      - name: Upload context smoke-test artefact
+      - name: Rank deterministic root-cause hypotheses
+        run: |
+          python -m modelguard diagnose \
+            --evaluation examples/evaluation_failed.json \
+            --context artifacts/context_snapshot.json \
+            --changes examples/regression_case.json \
+            --output artifacts/diagnosis_report.json \
+            --markdown-output artifacts/root_cause_report.md
+
+      - name: Verify leading diagnosis
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(
+              Path("artifacts/diagnosis_report.json").read_text(encoding="utf-8")
+          )
+          assert report["status"] == "ranked"
+          assert report["top_hypothesis_id"] == "H001"
+          assert report["hypotheses"][0]["category"] == "feature_transformation"
+          assert report["hypotheses"][0]["confidence"] == "high"
+          PY
+
+      - name: Upload ModelGuard evidence artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: phase-2-context-snapshot
-          path: artifacts/context_snapshot.json
+          name: modelguard-phase-3-evidence
+          path: |
+            artifacts/context_snapshot.json
+            artifacts/diagnosis_report.json
+            artifacts/root_cause_report.md
