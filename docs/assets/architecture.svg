@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">ModelGuard DataHub-grounded architecture</title>
+  <desc id="desc">Raw customer data flows to customer features, training data, the churn model and a production deployment. DataHub supplies metadata context to ModelGuard, which detects, diagnoses, repairs, validates and publishes the resolved incident.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b1d30"/><stop offset="1" stop-color="#06101c"/></linearGradient>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#38d6d1"/><stop offset="1" stop-color="#5b8cff"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a478ff"/><stop offset="1" stop-color="#d16fff"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-opacity=".28"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#52718e"/></marker>
+  </defs>
+  <rect width="1200" height="720" rx="28" fill="url(#bg)"/>
+  <g opacity=".14" stroke="#6c91ad"><path d="M0 90h1200M0 180h1200M0 270h1200M0 360h1200M0 450h1200M0 540h1200M0 630h1200"/><path d="M100 0v720M200 0v720M300 0v720M400 0v720M500 0v720M600 0v720M700 0v720M800 0v720M900 0v720M1000 0v720M1100 0v720"/></g>
+  <text x="70" y="72" fill="#f4f8fb" font-family="Arial,sans-serif" font-size="31" font-weight="700">End-to-end ML lineage</text>
+  <text x="70" y="105" fill="#91a9bd" font-family="Arial,sans-serif" font-size="16">DataHub supplies schema, lineage, ownership and quality evidence across every hop.</text>
+  <g stroke="#52718e" stroke-width="3" marker-end="url(#arrow)" fill="none">
+    <path d="M250 270H330"/><path d="M500 270H580"/><path d="M750 270H830"/><path d="M1000 270h70"/>
+  </g>
+  <g filter="url(#shadow)" font-family="Arial,sans-serif">
+    <g><rect x="65" y="205" width="185" height="130" rx="20" fill="#102840" stroke="#254863"/><text x="92" y="247" fill="#7ed9ff" font-size="13" font-weight="700">SOURCE</text><text x="92" y="282" fill="#f4f8fb" font-size="20" font-weight="700">raw_customers</text><text x="92" y="308" fill="#91a9bd" font-size="13">Snowflake · 3 hops</text></g>
+    <g><rect x="330" y="205" width="170" height="130" rx="20" fill="#102840" stroke="#254863"/><text x="357" y="247" fill="#7ed9ff" font-size="13" font-weight="700">FEATURES</text><text x="357" y="282" fill="#f4f8fb" font-size="20" font-weight="700">customer_features</text><text x="357" y="308" fill="#91a9bd" font-size="13">dbt · 2 hops</text></g>
+    <g><rect x="580" y="205" width="170" height="130" rx="20" fill="#102840" stroke="#254863"/><text x="607" y="247" fill="#7ed9ff" font-size="13" font-weight="700">TRAINING</text><text x="607" y="282" fill="#f4f8fb" font-size="20" font-weight="700">training_dataset</text><text x="607" y="308" fill="#91a9bd" font-size="13">Snowflake · 1 hop</text></g>
+    <g><rect x="830" y="190" width="170" height="160" rx="22" fill="url(#a)"/><text x="857" y="235" fill="#03202b" font-size="13" font-weight="800">ML MODEL</text><text x="857" y="275" fill="#031522" font-size="22" font-weight="800">churn-model-v3</text><text x="857" y="304" fill="#123247" font-size="13">MLflow · PROD</text><rect x="857" y="318" width="95" height="18" rx="9" fill="#031522" opacity=".18"/><text x="871" y="331" fill="#03202b" font-size="10" font-weight="700">F1 REGRESSION</text></g>
+    <g><rect x="1070" y="205" width="95" height="130" rx="20" fill="#102840" stroke="#254863"/><text x="1092" y="247" fill="#7ed9ff" font-size="12" font-weight="700">DEPLOY</text><text x="1092" y="282" fill="#f4f8fb" font-size="14" font-weight="700">churn-api</text><text x="1092" y="306" fill="#91a9bd" font-size="11">K8s</text></g>
+  </g>
+  <path d="M415 370C415 448 515 462 600 462" stroke="#a478ff" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <path d="M915 370C915 448 810 462 730 462" stroke="#38d6d1" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+  <g filter="url(#shadow)" font-family="Arial,sans-serif">
+    <rect x="430" y="430" width="340" height="210" rx="25" fill="#0d2035" stroke="#536f8a"/>
+    <rect x="455" y="455" width="290" height="48" rx="14" fill="url(#b)"/>
+    <text x="484" y="486" fill="white" font-size="22" font-weight="800">ModelGuard Agent</text>
+    <g fill="#b8c9d8" font-size="15"><text x="470" y="538">1. deterministic metric gate</text><text x="470" y="568">2. evidence-backed ranking</text><text x="470" y="598">3. constrained repair + validation</text><text x="470" y="628">4. GitHub + DataHub write-back</text></g>
+  </g>
+  <g font-family="Arial,sans-serif"><rect x="818" y="480" width="270" height="112" rx="20" fill="#102840" stroke="#254863"/><text x="845" y="518" fill="#64e6a3" font-size="13" font-weight="800">RESOLVED INCIDENT</text><text x="845" y="552" fill="#f4f8fb" font-size="18" font-weight="700">Evidence inherited</text><text x="845" y="578" fill="#91a9bd" font-size="13">by the next human or agent</text></g>
+  <path d="M770 542H818" stroke="#52718e" stroke-width="3" fill="none" marker-end="url(#arrow)"/>
+</svg>
