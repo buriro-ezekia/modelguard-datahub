@@ -2,35 +2,57 @@
 
 > What if your CI/CD pipeline did not merely catch a model regression, but traced the cause, generated a repair, validated it, and handed the engineer a review-ready fix?
 
-ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. It combines deterministic model evaluation with DataHub context so later diagnosis stages can reason from verified schemas, ownership, quality signals and lineage rather than guesswork.
+ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. It combines deterministic model evaluation, DataHub context and evidence-backed diagnosis so root-cause claims remain inspectable rather than becoming unsupported LLM guesses.
 
 ## Project status
 
-- **Phase 1 — merged:** deterministic metric-regression gate.
-- **Phase 2 — verified:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
-- **Phase 3 — next:** evidence-backed root-cause hypothesis generation and ranking.
+- **Phase 1 — complete:** deterministic metric-regression gate.
+- **Phase 2 — complete:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
+- **Phase 3 — complete:** evidence extraction, competing root-cause hypothesis generation, transparent ranking and abstention.
+- **Phase 4 — next:** constrained repair generation and independent validation.
 
-Phase 2 is deliberately read-only. It does not generate repairs, post GitHub comments or write incidents back to DataHub.
+Phase 3 ranks hypotheses; it does not prove causality, generate a patch or authorise a repository change.
 
-## Phase 2 architecture
+## Implemented workflow
 
 ```text
-CLI / future CI orchestrator
-          ↓
-ContextCollector
-          ↓
- ┌────────┼──────────────┐
- │        │              │
-Fixture   DataHub SDK    DataHub MCP
-provider  provider       provider
- │        │              │
- └────────┴──────────────┘
-          ↓
-Provider-neutral ContextSnapshot
-(entity + schema + owners + quality signals + lineage)
+Failed model evaluation
+        ↓
+Phase 1 evaluation artefact
+        ↓
+Phase 2 DataHub ContextSnapshot
+        ↓
+Changed-file and runtime observations
+        ↓
+Evidence registry with stable IDs
+        ↓
+Competing root-cause hypotheses
+        ↓
+Deterministic scoring + counter-evidence penalties
+        ↓
+Ranked diagnosis or explicit abstention
+        ↓
+JSON and review-ready Markdown reports
 ```
 
-The MCP provider calls the read-only `get_entities`, `list_schema_fields` and `get_lineage` tools. The SDK provider calls `DataHubClient.entities.get()` and `DataHubClient.lineage.get_lineage()`.
+## Phase 3 ranking policy
+
+The ranker uses fixed, testable contributions:
+
+| Signal | Maximum contribution |
+|---|---:|
+| Temporal proximity to the regression | 0.25 |
+| Relevance to the DataHub lineage path | 0.25 |
+| Ability to explain the failed metric | 0.20 |
+| Quality or profile corroboration | 0.20 |
+| Asset and field specificity | 0.10 |
+
+Counter-evidence and low evidence diversity reduce the score. ModelGuard abstains when:
+
+- the top score is below the minimum confidence threshold; or
+- the margin between the first and second hypotheses is too small.
+
+Every hypothesis contains supporting evidence IDs, counter-evidence IDs, score components, affected assets and fields, rationale and recommended checks.
 
 ## Codespaces quick start
 
@@ -38,7 +60,7 @@ The MCP provider calls the read-only `get_entities`, `list_schema_fields` and `g
 source scripts/bootstrap_codespace.sh
 ```
 
-Run the complete local verification suite:
+Run the complete verification suite:
 
 ```bash
 ruff check .
@@ -67,10 +89,64 @@ python -m modelguard context check --provider fixture
 
 python -m modelguard context collect \
   --provider fixture \
+  --lineage-direction both \
   --output artifacts/context_snapshot.json
 ```
 
-The generated snapshot contains the model, schema fields, ownership, quality signals, three upstream lineage hops and one downstream deployment. A representative output is committed at `examples/context_snapshot.json`.
+The snapshot contains the model, schema, ownership, quality signals, three upstream lineage hops and one downstream deployment.
+
+## Phase 3: diagnose the regression
+
+Run the complete deterministic demonstration:
+
+```bash
+python -m modelguard diagnose \
+  --evaluation examples/evaluation_failed.json \
+  --context artifacts/context_snapshot.json \
+  --changes examples/regression_case.json \
+  --output artifacts/diagnosis_report.json \
+  --markdown-output artifacts/root_cause_report.md
+```
+
+Expected leading result:
+
+```text
+Category: feature_transformation
+Confidence: high
+Affected asset: analytics.customer_features
+Affected fields: monthly_spend, account_age_months, total_spend
+```
+
+Exit statuses are:
+
+- `0`: evidence thresholds were met and hypotheses were ranked;
+- `2`: configuration, input or JSON validation failed;
+- `3`: ModelGuard abstained because evidence was insufficient or ambiguous.
+
+### Phase 3 input contract
+
+The diagnosis command consumes:
+
+1. a failed Phase 1 evaluation JSON object;
+2. a Phase 2 `ContextSnapshot` JSON object;
+3. a regression case containing changed files and deterministic observations.
+
+The committed `examples/regression_case.json` records changed lines, symbols, fields, assets and baseline-versus-candidate observations. Secrets, raw production rows and unrestricted repository contents are not required.
+
+### Phase 3 output contract
+
+`diagnosis_report.json` includes:
+
+- a deterministic diagnosis ID;
+- ranking status and policy thresholds;
+- a complete evidence registry;
+- ranked competing hypotheses;
+- supporting and counter-evidence references;
+- component-level scores;
+- an explicit top-hypothesis ID or `null` when ModelGuard abstains;
+- warnings about fixture or incomplete evidence.
+
+`root_cause_report.md` provides the same decision in a human-reviewable format and states that ranking does not prove causality.
 
 ## Connect through the DataHub Python SDK
 
@@ -107,7 +183,7 @@ Install the MCP integration:
 pip install -e ".[mcp]"
 ```
 
-For an unattended CI/CD workflow, use a scoped DataHub service-account token:
+For unattended CI/CD, use a scoped DataHub service-account token:
 
 ```bash
 export DATAHUB_MCP_URL="https://your-tenant.acryl.io/integrations/ai/mcp/"
@@ -126,21 +202,11 @@ python -m modelguard context collect \
   --output artifacts/live_mcp_context.json
 ```
 
-For self-hosted DataHub, point `DATAHUB_MCP_URL` at the self-hosted MCP endpoint. ModelGuard uses Streamable HTTP and places the token only in the `Authorization` header.
+For self-hosted DataHub, point `DATAHUB_MCP_URL` at the self-hosted MCP endpoint. ModelGuard uses Streamable HTTP and sends the token only in the `Authorization` header.
 
 ## Configuration
 
-`config/modelguard.yml` stores non-secret settings only:
-
-- context provider;
-- model URN;
-- maximum lineage hops;
-- result and schema limits;
-- names of environment variables that hold tokens.
-
-`config/thresholds.yml` records the initial deterministic metric policies.
-
-Environment variables override connection settings:
+`config/modelguard.yml` stores non-secret DataHub settings. `config/thresholds.yml` records deterministic metric policies. Phase 3 confidence and margin thresholds are CLI options so each CI policy remains explicit and visible.
 
 | Variable | Purpose |
 |---|---|
@@ -160,14 +226,16 @@ export MODELGUARD_DATAHUB_PROVIDER=sdk  # or mcp
 pytest -m live_datahub
 ```
 
-## Security boundaries
+## Security and reliability boundaries
 
 - No token is stored in configuration, examples or logs.
 - Phase 2 uses read-only DataHub operations.
-- Fixture mode is the default, so forks and CI do not contact external systems.
-- Live tests require an explicit opt-in environment variable.
-- Retrieval failures return a non-zero command status rather than a partial-success claim.
-- Collected context is normalised into a provider-neutral JSON contract before later agent reasoning.
+- Fixture mode is the default, so forks and ordinary CI do not contact external systems.
+- Every root-cause claim references collected evidence.
+- Missing or ambiguous evidence causes abstention rather than a confident guess.
+- Diagnosis and repair remain separate stages.
+- ModelGuard does not merge its own changes.
+- A future repair will be labelled validated only after independent deterministic checks pass.
 
 See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling requirements.
 
