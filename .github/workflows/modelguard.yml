@@ -138,10 +138,76 @@ jobs:
           assert "if account_age_months <= 0:" not in source
           PY
 
+      - name: Publish validated outcome to deterministic fixtures
+        run: |
+          python -m modelguard publish \
+            --diagnosis artifacts/diagnosis_report.json \
+            --repair-plan artifacts/repair_plan.json \
+            --validation artifacts/repair_validation.json \
+            --patch artifacts/validated_patch.diff \
+            --github-mode fixture \
+            --datahub-mode fixture \
+            --github-state artifacts/github_publication_state.json \
+            --datahub-state artifacts/datahub_incident_state.json \
+            --apply \
+            --output artifacts/publication_receipt.json \
+            --markdown-output artifacts/publication_report.md \
+            --comment-output artifacts/github_pr_comment.md
+
+          python -m modelguard publish \
+            --diagnosis artifacts/diagnosis_report.json \
+            --repair-plan artifacts/repair_plan.json \
+            --validation artifacts/repair_validation.json \
+            --patch artifacts/validated_patch.diff \
+            --github-mode fixture \
+            --datahub-mode fixture \
+            --github-state artifacts/github_publication_state.json \
+            --datahub-state artifacts/datahub_incident_state.json \
+            --apply \
+            --output artifacts/publication_receipt_repeat.json
+
+      - name: Verify idempotent publication
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          first = json.loads(
+              Path("artifacts/publication_receipt.json").read_text(encoding="utf-8")
+          )
+          repeat = json.loads(
+              Path("artifacts/publication_receipt_repeat.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          github = json.loads(
+              Path("artifacts/github_publication_state.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          datahub = json.loads(
+              Path("artifacts/datahub_incident_state.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          comment = Path("artifacts/github_pr_comment.md").read_text(encoding="utf-8")
+
+          assert first["status"] == "published"
+          assert [item["action"] for item in first["channels"]] == [
+              "created",
+              "raised_and_resolved",
+          ]
+          assert [item["action"] for item in repeat["channels"]] == ["noop", "noop"]
+          assert len(github["comments"]) == 1
+          assert len(datahub["incidents"]) == 1
+          assert datahub["incidents"][0]["state"] == "RESOLVED"
+          assert "modelguard:delivery" in comment
+          PY
+
       - name: Upload ModelGuard evidence artefacts
         uses: actions/upload-artifact@v4
         with:
-          name: modelguard-phase-4-validated-repair
+          name: modelguard-phase-5-publication
           path: |
             artifacts/pre_repair_demo.json
             artifacts/context_snapshot.json
@@ -151,3 +217,9 @@ jobs:
             artifacts/repair_validation.json
             artifacts/validated_patch.diff
             artifacts/validated_repair_report.md
+            artifacts/publication_receipt.json
+            artifacts/publication_receipt_repeat.json
+            artifacts/publication_report.md
+            artifacts/github_pr_comment.md
+            artifacts/github_publication_state.json
+            artifacts/datahub_incident_state.json
