@@ -2,92 +2,50 @@
 
 > What if your CI/CD pipeline did not merely catch a model regression, but traced the cause, generated a repair, validated it, and handed the engineer a review-ready fix?
 
-ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. The planned application will use DataHub lineage, schemas, ownership and quality context to diagnose upstream causes of model regressions, propose minimal repairs, validate them deterministically and write the investigation outcome back to DataHub.
+ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. It combines deterministic model evaluation with DataHub context so later diagnosis stages can reason from verified schemas, ownership, quality signals and lineage rather than guesswork.
 
 ## Project status
 
-**Phase 1: deterministic regression gate — in development.**
+- **Phase 1 — merged:** deterministic metric-regression gate.
+- **Phase 2 — verified:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
+- **Phase 3 — next:** evidence-backed root-cause hypothesis generation and ranking.
 
-The current implementation intentionally covers only the first foundation:
+Phase 2 is deliberately read-only. It does not generate repairs, post GitHub comments or write incidents back to DataHub.
 
-- compare an approved baseline metric with a candidate metric;
-- support metrics where either higher or lower values are preferable;
-- fail when the adverse change exceeds a configured tolerance;
-- emit a stable JSON artefact for later diagnosis stages;
-- run linting and tests in GitHub Actions.
-
-DataHub connectivity, root-cause ranking, patch generation, repair validation and metadata write-back are roadmap items and are not yet claimed as implemented.
-
-## Planned workflow
+## Phase 2 architecture
 
 ```text
-Pull request opened
-        ↓
-Deterministic model evaluation detects a regression
-        ↓
-ModelGuard gathers changed-code and metric evidence
-        ↓
-DataHub supplies lineage, schema, ownership and quality context
-        ↓
-The agent ranks evidence-backed root-cause hypotheses
-        ↓
-A minimal repair and regression test are generated
-        ↓
-Independent validation reruns tests and model evaluation
-        ↓
-A review-ready report is posted and the outcome is written to DataHub
+CLI / future CI orchestrator
+          ↓
+ContextCollector
+          ↓
+ ┌────────┼──────────────┐
+ │        │              │
+Fixture   DataHub SDK    DataHub MCP
+provider  provider       provider
+ │        │              │
+ └────────┴──────────────┘
+          ↓
+Provider-neutral ContextSnapshot
+(entity + schema + owners + quality signals + lineage)
 ```
 
-## Quick start
+The MCP provider calls the read-only `get_entities`, `list_schema_fields` and `get_lineage` tools. The SDK provider calls `DataHubClient.entities.get()` and `DataHubClient.lineage.get_lineage()`.
 
-### Requirements
-
-- Python 3.11 or later
-
-### GitHub Codespaces
-
-The repository includes a development-container configuration. A newly created or rebuilt Codespace installs the project and runs the quality checks automatically.
-
-For an already-running Codespace, run:
+## Codespaces quick start
 
 ```bash
 source scripts/bootstrap_codespace.sh
 ```
 
-The bootstrap script:
-
-- discovers the active Python installation's scripts directory;
-- adds that directory to the current `PATH` and persists it in `~/.bashrc`;
-- installs the project and development dependencies;
-- runs Ruff and pytest.
-
-This prevents warnings caused by `modelguard`, `pytest` or `ruff` being installed outside the current shell's `PATH`.
-
-### Local installation
+Run the complete local verification suite:
 
 ```bash
-git clone https://github.com/buriro-ezekia/modelguard-datahub.git
-cd modelguard-datahub
-python -m venv .venv
+ruff check .
+pytest
 ```
 
-Activate the environment, then install the development dependencies:
-
-```bash
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-```
-
-### Run the tests
-
-```bash
-python -m ruff check .
-python -m pytest
-```
-
-## Evaluate a metric
-
-The following command compares a candidate F1 score with its approved baseline and writes a machine-readable artefact:
+## Phase 1: evaluate a metric
 
 ```bash
 python -m modelguard evaluate \
@@ -98,74 +56,129 @@ python -m modelguard evaluate \
   --output artifacts/evaluation.json
 ```
 
-After running the Codespaces bootstrap or activating a correctly configured virtual environment, the shorter console command is also available:
+Exit status `1` means the configured regression threshold was exceeded.
+
+## Phase 2: collect context without credentials
+
+The committed fixture models the churn-model demonstration lineage and is safe for CI:
 
 ```bash
-modelguard evaluate \
-  --metric f1_score \
-  --baseline 0.842 \
-  --candidate 0.771 \
-  --max-regression 0.02 \
-  --output artifacts/evaluation.json
+python -m modelguard context check --provider fixture
+
+python -m modelguard context collect \
+  --provider fixture \
+  --output artifacts/context_snapshot.json
 ```
 
-The command exits with status `1` when the regression exceeds the tolerance, making it suitable for a CI gate. A successful comparison exits with status `0`.
+The generated snapshot contains the model, schema fields, ownership, quality signals, three upstream lineage hops and one downstream deployment. A representative output is committed at `examples/context_snapshot.json`.
 
-Example output:
+## Connect through the DataHub Python SDK
 
-```json
-{
-  "baseline": 0.842,
-  "candidate": 0.771,
-  "change": -0.071,
-  "direction": "higher_is_better",
-  "maximum_allowed_regression": 0.02,
-  "metric": "f1_score",
-  "regression_amount": 0.071,
-  "status": "failed"
-}
-```
-
-JSON values are normalised to remove insignificant binary floating-point noise while the regression decision continues to use the original numerical values.
-
-For error metrics such as RMSE, use:
+Install the SDK integration:
 
 ```bash
-python -m modelguard evaluate \
-  --metric rmse \
-  --baseline 2.0 \
-  --candidate 2.8 \
-  --max-regression 0.5 \
-  --direction lower_is_better
+pip install -e ".[datahub]"
 ```
 
-## MVP demonstration target
+Set credentials through the environment, never in YAML:
 
-The first end-to-end demonstration will introduce an unsafe feature transformation that reduces a model's F1 score. ModelGuard will be expected to:
+```bash
+export DATAHUB_GMS_URL="https://your-datahub.example.com"
+export DATAHUB_GMS_TOKEN="your-service-account-token"
+export MODELGUARD_DATAHUB_PROVIDER="sdk"
+```
 
-1. detect the regression deterministically;
-2. trace the affected feature and upstream assets through DataHub;
-3. rank the modified transformation as the most likely cause using cited evidence;
-4. generate a minimal guarded repair and regression test;
-5. rerun validation and recover the metric within tolerance;
-6. produce a review-ready report and write the resolution context to DataHub.
+Verify and collect:
+
+```bash
+python -m modelguard context check --provider sdk
+
+python -m modelguard context collect \
+  --provider sdk \
+  --urn "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)" \
+  --output artifacts/live_sdk_context.json
+```
+
+## Connect through the DataHub MCP Server
+
+Install the MCP integration:
+
+```bash
+pip install -e ".[mcp]"
+```
+
+For an unattended CI/CD workflow, use a scoped DataHub service-account token:
+
+```bash
+export DATAHUB_MCP_URL="https://your-tenant.acryl.io/integrations/ai/mcp/"
+export DATAHUB_MCP_TOKEN="your-service-account-token"
+export MODELGUARD_DATAHUB_PROVIDER="mcp"
+```
+
+Verify and collect:
+
+```bash
+python -m modelguard context check --provider mcp
+
+python -m modelguard context collect \
+  --provider mcp \
+  --lineage-direction both \
+  --output artifacts/live_mcp_context.json
+```
+
+For self-hosted DataHub, point `DATAHUB_MCP_URL` at the self-hosted MCP endpoint. ModelGuard uses Streamable HTTP and places the token only in the `Authorization` header.
+
+## Configuration
+
+`config/modelguard.yml` stores non-secret settings only:
+
+- context provider;
+- model URN;
+- maximum lineage hops;
+- result and schema limits;
+- names of environment variables that hold tokens.
+
+`config/thresholds.yml` records the initial deterministic metric policies.
+
+Environment variables override connection settings:
+
+| Variable | Purpose |
+|---|---|
+| `MODELGUARD_DATAHUB_PROVIDER` | Select `fixture`, `sdk` or `mcp` |
+| `DATAHUB_GMS_URL` | DataHub GMS URL for the SDK |
+| `DATAHUB_GMS_TOKEN` | SDK service-account token |
+| `DATAHUB_MCP_URL` | DataHub MCP Streamable HTTP endpoint |
+| `DATAHUB_MCP_TOKEN` | MCP service-account token |
+
+## Live integration test
+
+Live verification is opt-in and skipped in ordinary CI:
+
+```bash
+export MODELGUARD_LIVE_DATAHUB=1
+export MODELGUARD_DATAHUB_PROVIDER=sdk  # or mcp
+pytest -m live_datahub
+```
+
+## Security boundaries
+
+- No token is stored in configuration, examples or logs.
+- Phase 2 uses read-only DataHub operations.
+- Fixture mode is the default, so forks and CI do not contact external systems.
+- Live tests require an explicit opt-in environment variable.
+- Retrieval failures return a non-zero command status rather than a partial-success claim.
+- Collected context is normalised into a provider-neutral JSON contract before later agent reasoning.
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling requirements.
 
 ## Roadmap
 
-- **Phase 1:** deterministic CI regression gate;
-- **Phase 2:** DataHub SDK and MCP context retrieval;
-- **Phase 3:** evidence-backed root-cause ranking;
-- **Phase 4:** constrained repair generation and independent validation;
-- **Phase 5:** GitHub reporting and DataHub incident or resolution write-back;
-- **Phase 6:** hosted demonstration and hackathon submission assets.
-
-## Safety principles
-
-- The agent will not merge its own repair during the MVP.
-- Diagnosis and repair will remain separate stages.
-- Every root-cause claim must reference collected evidence.
-- Generated patches will be restricted by file, line and validation policies.
-- A repair will be labelled validated only after deterministic checks pass.
+1. deterministic CI regression gate;
+2. DataHub SDK and MCP context retrieval;
+3. evidence-backed root-cause ranking;
+4. constrained repair generation and independent validation;
+5. GitHub reporting and DataHub incident or resolution write-back;
+6. hosted demonstration and hackathon submission assets.
 
 ## Licence
 

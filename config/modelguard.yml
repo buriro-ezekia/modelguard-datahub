@@ -1,0 +1,19 @@
+project:
+  name: modelguard-datahub
+
+model:
+  urn: "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+
+datahub:
+  # fixture is safe for CI and Codespaces. Override with
+  # MODELGUARD_DATAHUB_PROVIDER=sdk or MODELGUARD_DATAHUB_PROVIDER=mcp.
+  provider: fixture
+  gms_url:
+  mcp_url:
+  token_env: DATAHUB_GMS_TOKEN
+  mcp_token_env: DATAHUB_MCP_TOKEN
+  fixture_path: ../examples/datahub_context_fixture.json
+  max_hops: 3
+  max_results: 100
+  schema_limit: 200
+  timeout_seconds: 30

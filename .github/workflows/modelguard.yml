@@ -1,0 +1,68 @@
+name: ModelGuard CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - feat/phase-1-regression-gate
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install project
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          ruff check . --output-format=json > artifacts/ruff-report.json
+
+      - name: Upload Ruff diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-diagnostics
+          path: artifacts/ruff-report.json
+
+      - name: Enforce lint result
+        if: steps.lint.outcome == 'failure'
+        run: |
+          cat artifacts/ruff-report.json
+          exit 1
+
+      - name: Test
+        run: pytest
+
+      - name: Collect deterministic DataHub context
+        run: |
+          python -m modelguard context check --provider fixture
+          python -m modelguard context collect \
+            --provider fixture \
+            --output artifacts/context_snapshot.json
+
+      - name: Upload context smoke-test artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-2-context-snapshot
+          path: artifacts/context_snapshot.json
