@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 from urllib import error, request
 
 if TYPE_CHECKING:
@@ -210,7 +211,7 @@ class DataHubIncidentWriter:
             headers,
         )
         resolved = _graphql_value(result, "updateIncidentStatus")
-        if resolved not in {True, "true", "True", 1, "1"}:
+        if resolved not in {True, "true", "True", "1"}:
             raise RuntimeError("DataHub did not confirm incident resolution")
         return ChannelReceipt(
             channel="datahub",
