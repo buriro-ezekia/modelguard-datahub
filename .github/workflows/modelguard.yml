@@ -32,7 +32,24 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Lint
-        run: ruff check .
+        id: lint
+        continue-on-error: true
+        run: |
+          mkdir -p artifacts
+          ruff check . --output-format=json > artifacts/ruff-report.json
+
+      - name: Upload Ruff diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-diagnostics
+          path: artifacts/ruff-report.json
+
+      - name: Enforce lint result
+        if: steps.lint.outcome == 'failure'
+        run: |
+          cat artifacts/ruff-report.json
+          exit 1
 
       - name: Test
         run: pytest
