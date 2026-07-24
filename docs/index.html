@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="ModelGuard is a DataHub-grounded production ML agent that detects regressions, diagnoses root causes, validates minimal repairs, and publishes evidence-backed outcomes.">
+  <meta name="theme-color" content="#07111f">
+  <meta property="og:title" content="ModelGuard — DataHub Production ML Agent">
+  <meta property="og:description" content="From failed F1 gate to a validated two-line repair and idempotent DataHub write-back.">
+  <meta property="og:image" content="assets/social-preview.svg">
+  <title>ModelGuard — DataHub Production ML Agent</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="ModelGuard home">
+      <span class="brand-mark">MG</span>
+      <span>ModelGuard</span>
+    </a>
+    <nav aria-label="Primary navigation">
+      <a href="#workflow">Workflow</a>
+      <a href="#evidence">Evidence</a>
+      <a href="#judge">Judge it</a>
+      <a class="nav-cta" href="https://github.com/buriro-ezekia/modelguard-datahub">Repository</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section id="top" class="hero section-shell">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="pulse"></span> End-to-end fixture flow verified in CI</div>
+        <h1>Your CI caught the regression. <span>ModelGuard found why—and returned a validated fix.</span></h1>
+        <p class="hero-lede">A DataHub-grounded production ML agent that detects model regressions, traverses lineage, ranks evidence-backed root causes, generates a constrained repair, validates it in isolation, and writes the resolved incident back without duplicates.</p>
+        <div class="hero-actions">
+          <button class="button primary" id="replayButton">Replay the incident</button>
+          <a class="button secondary" href="#judge">Run it in one command</a>
+        </div>
+        <div class="proof-strip" aria-label="Verified outcomes">
+          <div><strong>0.771 → 0.842</strong><span>F1 restored</span></div>
+          <div><strong>H001 · 1.000</strong><span>leading cause</span></div>
+          <div><strong>2 lines</strong><span>minimal repair</span></div>
+          <div><strong>0 duplicates</strong><span>repeat publish</span></div>
+        </div>
+      </div>
+
+      <div class="terminal-card" aria-label="Interactive incident replay">
+        <div class="terminal-bar">
+          <span></span><span></span><span></span>
+          <p>modelguard showcase</p>
+        </div>
+        <div class="terminal-status">
+          <span id="terminalBadge" class="status-badge failed">regression detected</span>
+          <span id="terminalStep">1 / 6</span>
+        </div>
+        <pre id="terminalOutput" aria-live="polite">$ modelguard evaluate
+metric: f1_score
+baseline: 0.842
+candidate: 0.771
+status: failed
+exit_code: 1</pre>
+        <div class="terminal-progress" aria-hidden="true"><span id="terminalProgress"></span></div>
+        <div class="terminal-nav" aria-label="Replay stages">
+          <button data-stage="0" class="active">Detect</button>
+          <button data-stage="1">Context</button>
+          <button data-stage="2">Diagnose</button>
+          <button data-stage="3">Repair</button>
+          <button data-stage="4">Validate</button>
+          <button data-stage="5">Publish</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="trust-band" aria-label="Project qualities">
+      <span>DataHub MCP + SDK</span>
+      <span>Deterministic gates</span>
+      <span>Evidence registry</span>
+      <span>Isolated validation</span>
+      <span>Dry-run by default</span>
+      <span>Apache-2.0</span>
+    </section>
+
+    <section id="workflow" class="section-shell section-block">
+      <div class="section-heading">
+        <p class="kicker">Six guarded phases</p>
+        <h2>From silent regression to inherited operational knowledge.</h2>
+        <p>Each phase has a typed artefact, explicit exit status, and a safety boundary. The reasoning layer cannot skip deterministic evidence or validation.</p>
+      </div>
+      <div class="workflow-grid">
+        <article><span>01</span><h3>Detect</h3><p>Fail the metric gate when F1 falls beyond policy.</p><strong>0.071 regression</strong></article>
+        <article><span>02</span><h3>Context</h3><p>Resolve schema, ownership, quality signals, lineage and deployments through DataHub.</p><strong>3 upstream · 1 downstream</strong></article>
+        <article><span>03</span><h3>Diagnose</h3><p>Generate competing hypotheses and rank them with supporting and counter-evidence.</p><strong>H001 · high confidence</strong></article>
+        <article><span>04</span><h3>Repair</h3><p>Generate only the smallest supported change inside an approved file boundary.</p><strong>1 file · 2 lines</strong></article>
+        <article><span>05</span><h3>Validate</h3><p>Apply the patch in a temporary workspace, compile, test and rerun the model gate.</p><strong>3 tests · F1 0.842</strong></article>
+        <article><span>06</span><h3>Publish</h3><p>Post one review-ready PR comment and one resolved DataHub incident lifecycle.</p><strong>repeat action: noop</strong></article>
+      </div>
+    </section>
+
+    <section class="context-section section-shell section-block">
+      <div class="section-heading compact">
+        <p class="kicker">Why DataHub matters</p>
+        <h2>The agent sees the whole ML path, not just the changed line.</h2>
+      </div>
+      <div class="context-layout">
+        <img src="assets/architecture.svg" alt="Architecture showing raw customers flowing through customer features and training data to the churn model and production deployment, with ModelGuard using DataHub context throughout.">
+        <div class="context-copy">
+          <div class="context-stat"><strong>Lineage</strong><span>raw_customers → customer_features → training_dataset → churn-model-v3 → churn-api-prod</span></div>
+          <div class="context-stat"><strong>Schema</strong><span>monthly_spend DOUBLE, account_age_months INTEGER, field-level relevance</span></div>
+          <div class="context-stat"><strong>Signals</strong><span>37 candidate infinities, 12 stable zero-age source rows, failed F1 quality event</span></div>
+          <div class="context-stat"><strong>Write-back</strong><span>one resolved incident so the next human or agent inherits the diagnosis and repair evidence</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="evidence" class="evidence-section section-shell section-block">
+      <div class="section-heading">
+        <p class="kicker">Evidence, not guesses</p>
+        <h2>The winning hypothesis explains both the code change and the observed failure.</h2>
+      </div>
+      <div class="evidence-grid">
+        <div class="ranking-card">
+          <div class="rank-row top"><div><b>1</b><span>feature_transformation</span></div><strong>1.0000</strong><i style="--score:100%"></i></div>
+          <div class="rank-row"><div><b>2</b><span>source_data_quality</span></div><strong>0.6025</strong><i style="--score:60.25%"></i></div>
+          <div class="rank-row"><div><b>3</b><span>schema_contract</span></div><strong>0.2775</strong><i style="--score:27.75%"></i></div>
+          <p class="small-note">Eleven evidence records are linked by stable IDs. The direct transformation change also counts as counter-evidence against blaming the unchanged source rows alone.</p>
+        </div>
+        <div class="evidence-list">
+          <div><span>E001</span><p>F1 changed from <b>0.842</b> to <b>0.771</b>.</p></div>
+          <div><span>E002</span><p>The PR replaced safe division with direct division.</p></div>
+          <div><span>E006</span><p><code>customer_features</code> is two lineage hops upstream.</p></div>
+          <div><span>E010</span><p>Candidate <code>monthly_spend</code> contains <b>37 infinities</b>; baseline contains none.</p></div>
+          <div><span>E011</span><p>The same twelve zero-age source rows existed before the change.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="repair-section section-shell section-block">
+      <div class="repair-copy">
+        <p class="kicker">A fix engineers can review</p>
+        <h2>Two lines. One function. Independently validated.</h2>
+        <p>The patch guard rejects protected paths, oversized changes, unsupported file types and unsafe tokens. The proposed change is applied only to a temporary copy, while the original workspace is hashed before and after validation.</p>
+        <div class="validation-grid">
+          <div><span>Patch guard</span><strong>Approved</strong></div>
+          <div><span>Targeted tests</span><strong>3 passed</strong></div>
+          <div><span>Invalid values</span><strong>37 → 0</strong></div>
+          <div><span>Source changed</span><strong>No</strong></div>
+        </div>
+      </div>
+      <div class="diff-card" aria-label="Validated patch">
+        <div class="diff-header"><span>validated_patch.diff</span><b>+2 −0</b></div>
+        <pre><span class="muted">def calculate_monthly_spend(</span>
+<span class="muted">    total_spend: float,</span>
+<span class="muted">    account_age_months: int,</span>
+<span class="muted">) -&gt; float:</span>
+<span class="added">+   if account_age_months &lt;= 0:</span>
+<span class="added">+       return 0.0</span>
+<span class="muted">    return total_spend / account_age_months</span></pre>
+        <div class="metric-restore"><span>F1</span><b>0.771</b><em>→</em><strong>0.842</strong><i>policy passed</i></div>
+      </div>
+    </section>
+
+    <section class="publication-section section-shell section-block">
+      <div class="section-heading compact">
+        <p class="kicker">Closed-loop operations</p>
+        <h2>Publish once. Repeat safely.</h2>
+      </div>
+      <div class="publication-grid">
+        <article>
+          <div class="channel-icon">GH</div>
+          <h3>GitHub</h3>
+          <p>A single marked pull-request comment contains the ranked diagnosis, verified metric recovery and exact patch.</p>
+          <div class="receipt"><span>first run</span><strong>created</strong></div>
+          <div class="receipt"><span>repeat run</span><strong>noop</strong></div>
+        </article>
+        <article>
+          <div class="channel-icon datahub">DH</div>
+          <h3>DataHub</h3>
+          <p>A custom incident is raised and resolved against the affected dataset, preserving the operational history in the context graph.</p>
+          <div class="receipt"><span>first run</span><strong>raised_and_resolved</strong></div>
+          <div class="receipt"><span>repeat run</span><strong>noop</strong></div>
+        </article>
+        <article class="delivery-card">
+          <span>Stable delivery</span>
+          <strong>delivery-43a1891cc0d4</strong>
+          <p>Hidden markers make publication idempotent across reruns.</p>
+          <div class="resolved-pill">RESOLVED</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="judge" class="judge-section section-shell section-block">
+      <div class="judge-copy">
+        <p class="kicker">Judge it in under two minutes</p>
+        <h2>One command replays the complete incident.</h2>
+        <p>The showcase uses deterministic fixtures, needs no credentials and writes only to <code>artifacts/</code>. Live DataHub and GitHub modes remain explicit opt-ins.</p>
+        <div class="command-box">
+          <code id="showcaseCommand">python scripts/run_showcase.py</code>
+          <button id="copyCommand" aria-label="Copy showcase command">Copy</button>
+        </div>
+        <div class="judge-links">
+          <a href="https://github.com/buriro-ezekia/modelguard-datahub/blob/main/submission/JUDGING_GUIDE.md">Judging guide</a>
+          <a href="https://github.com/buriro-ezekia/modelguard-datahub/blob/main/submission/TESTING_INSTRUCTIONS.md">Testing instructions</a>
+          <a href="https://github.com/buriro-ezekia/modelguard-datahub/tree/main/examples">Sample outputs</a>
+        </div>
+      </div>
+      <div class="scorecard">
+        <h3>Submission scorecard</h3>
+        <div><span>Meaningful DataHub usage</span><b>Read + write-back</b></div>
+        <div><span>Technical execution</span><b>6 gated phases</b></div>
+        <div><span>Originality</span><b>Diagnose → repair → validate</b></div>
+        <div><span>Real-world usefulness</span><b>Production ML CI</b></div>
+        <div><span>Submission quality</span><b>Hosted + reproducible</b></div>
+      </div>
+    </section>
+
+    <section class="safety-section section-shell section-block">
+      <div class="section-heading compact">
+        <p class="kicker">Designed to earn trust</p>
+        <h2>The agent is powerful where evidence is strong—and deliberately limited everywhere else.</h2>
+      </div>
+      <div class="safety-grid">
+        <article><h3>Abstention</h3><p>Weak or ambiguous evidence exits without a leading diagnosis.</p></article>
+        <article><h3>Patch boundaries</h3><p>Only a cited file, approved strategy and minimal line budget are allowed.</p></article>
+        <article><h3>Isolation</h3><p>Repairs run in a temporary workspace with no shell execution.</p></article>
+        <article><h3>Human control</h3><p>ModelGuard never applies or merges its own patch.</p></article>
+        <article><h3>Dry-run default</h3><p>External writes require explicit <code>--apply</code> and scoped credentials.</p></article>
+        <article><h3>Audit trail</h3><p>JSON, Markdown, diff and incident artefacts remain inspectable.</p></article>
+      </div>
+    </section>
+
+    <section class="final-cta section-shell">
+      <p class="kicker">ModelGuard</p>
+      <h2>Production ML protection, grounded in the context graph.</h2>
+      <p>Detect the regression. Trace the cause. Validate the fix. Preserve the knowledge.</p>
+      <div>
+        <a class="button primary" href="https://github.com/buriro-ezekia/modelguard-datahub">Explore the code</a>
+        <a class="button secondary" href="https://github.com/buriro-ezekia/modelguard-datahub/tree/main/examples">Inspect outputs</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>ModelGuard · Apache-2.0</span>
+    <span>Built for the DataHub Agent Hackathon · Production ML Agents</span>
+  </footer>
+  <script src="app.js"></script>
+</body>
+</html>
