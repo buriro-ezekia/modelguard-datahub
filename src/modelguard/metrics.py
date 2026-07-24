@@ -7,6 +7,13 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 MetricDirection = Literal["higher_is_better", "lower_is_better"]
+_SERIALISATION_SIGNIFICANT_DIGITS = 12
+
+
+def _normalise_for_serialisation(value: float) -> float:
+    """Remove insignificant binary floating-point noise from JSON values."""
+    normalised = float(f"{value:.{_SERIALISATION_SIGNIFICANT_DIGITS}g}")
+    return 0.0 if normalised == 0 else normalised
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,13 +64,12 @@ class MetricEvaluation:
     @property
     def failed(self) -> bool:
         """Return whether the adverse change exceeds the configured tolerance."""
-        regression = self.regression_amount
-        threshold = self.policy.maximum_allowed_regression
-        return regression > threshold and not math.isclose(
-            regression,
-            threshold,
+        tolerance = self.policy.maximum_allowed_regression
+        return self.regression_amount > tolerance and not math.isclose(
+            self.regression_amount,
+            tolerance,
             rel_tol=1e-12,
-            abs_tol=1e-12,
+            abs_tol=1e-15,
         )
 
     @property
@@ -75,10 +81,12 @@ class MetricEvaluation:
         return {
             "metric": self.policy.metric,
             "direction": self.policy.direction,
-            "baseline": self.baseline,
-            "candidate": self.candidate,
-            "change": self.change,
-            "regression_amount": self.regression_amount,
-            "maximum_allowed_regression": self.policy.maximum_allowed_regression,
+            "baseline": _normalise_for_serialisation(self.baseline),
+            "candidate": _normalise_for_serialisation(self.candidate),
+            "change": _normalise_for_serialisation(self.change),
+            "regression_amount": _normalise_for_serialisation(self.regression_amount),
+            "maximum_allowed_regression": _normalise_for_serialisation(
+                self.policy.maximum_allowed_regression
+            ),
             "status": self.status,
         }
