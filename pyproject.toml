@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modelguard-datahub"
-version = "0.1.0"
+version = "0.2.0"
 description = "A metadata-aware CI agent that diagnoses ML regressions and validates proposed repairs."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,9 +19,23 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0,<7",
+]
 
 [project.optional-dependencies]
+datahub = [
+  "acryl-datahub>=1.6,<2",
+]
+mcp = [
+  "httpx>=0.28,<1",
+  "mcp>=1.24,<2",
+]
+phase2 = [
+  "acryl-datahub>=1.6,<2",
+  "httpx>=0.28,<1",
+  "mcp>=1.24,<2",
+]
 dev = [
   "pytest>=8.3,<9",
   "ruff>=0.9,<1",
@@ -40,6 +54,9 @@ where = ["src"]
 addopts = "-q"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+  "live_datahub: requires an explicitly configured live DataHub instance",
+]
 
 [tool.ruff]
 line-length = 100

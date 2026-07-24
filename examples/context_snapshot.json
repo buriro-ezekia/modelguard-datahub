@@ -1,0 +1,137 @@
+{
+  "downstream": [
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLMODELDEPLOYMENT",
+      "hops": 1,
+      "name": "churn-api-prod",
+      "paths": [],
+      "platform": "kubernetes",
+      "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kubernetes,churn-api-prod,PROD)"
+    }
+  ],
+  "entity": {
+    "description": "Demonstration churn model used by ModelGuard.",
+    "entity_type": "MLMODEL",
+    "glossary_terms": [],
+    "name": "churn-model-v3",
+    "owners": [
+      "urn:li:corpGroup:data-platform"
+    ],
+    "platform": "mlflow",
+    "quality_signals": [
+      {
+        "baseline": 0.842,
+        "candidate": 0.771,
+        "metric": "f1_score",
+        "status": "failed",
+        "type": "metric-regression"
+      }
+    ],
+    "raw": {
+      "description": "Demonstration churn model used by ModelGuard.",
+      "name": "churn-model-v3",
+      "owners": [
+        "urn:li:corpGroup:data-platform"
+      ],
+      "platform": "mlflow",
+      "quality_signals": [
+        {
+          "baseline": 0.842,
+          "candidate": 0.771,
+          "metric": "f1_score",
+          "status": "failed",
+          "type": "metric-regression"
+        }
+      ],
+      "schema_fields": [
+        {
+          "description": "Average customer spend per active account month.",
+          "field_path": "monthly_spend",
+          "native_type": "DOUBLE",
+          "nullable": true
+        },
+        {
+          "description": "Completed months since account creation.",
+          "field_path": "account_age_months",
+          "native_type": "INTEGER",
+          "nullable": false
+        }
+      ],
+      "tags": [
+        "urn:li:tag:Production"
+      ],
+      "type": "MLMODEL",
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    },
+    "schema_fields": [
+      {
+        "description": "Average customer spend per active account month.",
+        "field_path": "monthly_spend",
+        "glossary_terms": [],
+        "native_type": "DOUBLE",
+        "nullable": true,
+        "tags": []
+      },
+      {
+        "description": "Completed months since account creation.",
+        "field_path": "account_age_months",
+        "glossary_terms": [],
+        "native_type": "INTEGER",
+        "nullable": false,
+        "tags": []
+      }
+    ],
+    "tags": [
+      "urn:li:tag:Production"
+    ],
+    "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+  },
+  "generated_at": "2026-07-24T00:00:00+00:00",
+  "max_hops": 3,
+  "provider": "fixture",
+  "provider_metadata": {
+    "fixture_name": "datahub_context_fixture.json",
+    "purpose": "deterministic Phase 2 smoke test"
+  },
+  "source_column": null,
+  "source_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "upstream": [
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 1,
+      "name": "churn_training_dataset",
+      "paths": [],
+      "platform": "snowflake",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.churn_training_dataset,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 2,
+      "name": "customer_features",
+      "paths": [
+        [
+          "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD),monthly_spend)",
+          "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.churn_training_dataset,PROD),monthly_spend)"
+        ]
+      ],
+      "platform": "dbt",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 3,
+      "name": "raw_customers",
+      "paths": [],
+      "platform": "snowflake",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,raw.raw_customers,PROD)"
+    }
+  ]
+}

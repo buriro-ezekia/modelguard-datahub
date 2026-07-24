@@ -1,0 +1,84 @@
+{
+  "source_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "provider": "fixture",
+  "generated_at": "2026-07-24T00:00:00+00:00",
+  "source_column": null,
+  "max_hops": 3,
+  "entity": {
+    "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+    "type": "MLMODEL",
+    "name": "churn-model-v3",
+    "platform": "mlflow",
+    "description": "Demonstration churn model used by ModelGuard.",
+    "owners": ["urn:li:corpGroup:data-platform"],
+    "tags": ["urn:li:tag:Production"],
+    "quality_signals": [
+      {
+        "type": "metric-regression",
+        "metric": "f1_score",
+        "baseline": 0.842,
+        "candidate": 0.771,
+        "status": "failed"
+      }
+    ],
+    "schema_fields": [
+      {
+        "field_path": "monthly_spend",
+        "native_type": "DOUBLE",
+        "description": "Average customer spend per active account month.",
+        "nullable": true
+      },
+      {
+        "field_path": "account_age_months",
+        "native_type": "INTEGER",
+        "description": "Completed months since account creation.",
+        "nullable": false
+      }
+    ]
+  },
+  "upstream": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.churn_training_dataset,PROD)",
+      "direction": "upstream",
+      "hops": 1,
+      "type": "DATASET",
+      "name": "churn_training_dataset",
+      "platform": "snowflake"
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)",
+      "direction": "upstream",
+      "hops": 2,
+      "type": "DATASET",
+      "name": "customer_features",
+      "platform": "dbt",
+      "paths": [
+        [
+          "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD),monthly_spend)",
+          "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.churn_training_dataset,PROD),monthly_spend)"
+        ]
+      ]
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,raw.raw_customers,PROD)",
+      "direction": "upstream",
+      "hops": 3,
+      "type": "DATASET",
+      "name": "raw_customers",
+      "platform": "snowflake"
+    }
+  ],
+  "downstream": [
+    {
+      "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kubernetes,churn-api-prod,PROD)",
+      "direction": "downstream",
+      "hops": 1,
+      "type": "MLMODELDEPLOYMENT",
+      "name": "churn-api-prod",
+      "platform": "kubernetes"
+    }
+  ],
+  "provider_metadata": {
+    "purpose": "deterministic Phase 2 smoke test"
+  }
+}

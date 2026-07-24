@@ -1,4 +1,4 @@
-name: CI
+name: ModelGuard CI
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - feat/phase-1-regression-gate
 
 permissions:
   contents: read
@@ -35,3 +36,16 @@ jobs:
 
       - name: Test
         run: pytest
+
+      - name: Collect deterministic DataHub context
+        run: |
+          python -m modelguard context check --provider fixture
+          python -m modelguard context collect \
+            --provider fixture \
+            --output artifacts/context_snapshot.json
+
+      - name: Upload context smoke-test artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-2-context-snapshot
+          path: artifacts/context_snapshot.json

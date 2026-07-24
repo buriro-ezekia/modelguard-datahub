@@ -1,0 +1,7 @@
+metrics:
+  f1_score:
+    direction: higher_is_better
+    maximum_allowed_regression: 0.02
+  rmse:
+    direction: lower_is_better
+    maximum_allowed_regression: 0.50
