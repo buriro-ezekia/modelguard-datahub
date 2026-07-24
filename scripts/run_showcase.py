@@ -15,7 +15,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _run(arguments: list[str], *, expected: set[int] = {0}) -> dict[str, Any]:
+def _run(
+    arguments: list[str], *, expected: set[int] | None = None
+) -> dict[str, Any]:
+    allowed_return_codes = {0} if expected is None else expected
     started = time.monotonic()
     completed = subprocess.run(
         [sys.executable, "-m", "modelguard", *arguments],
@@ -24,7 +27,7 @@ def _run(arguments: list[str], *, expected: set[int] = {0}) -> dict[str, Any]:
         text=True,
         check=False,
     )
-    if completed.returncode not in expected:
+    if completed.returncode not in allowed_return_codes:
         raise RuntimeError(
             f"command failed ({completed.returncode}): {' '.join(arguments)}\n"
             f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
@@ -47,7 +50,11 @@ def _read(path: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--artifacts-dir", type=Path, default=Path("artifacts/showcase"))
+    parser.add_argument(
+        "--artifacts-dir",
+        type=Path,
+        default=Path("artifacts/showcase"),
+    )
     parser.add_argument("--keep-state", action="store_true")
     args = parser.parse_args()
 
@@ -178,9 +185,8 @@ def main() -> int:
     ]
     commands.append(_run(publish_args))
     repeat_args = publish_args.copy()
-    repeat_args[repeat_args.index(str(paths["publication"]))] = str(
-        paths["publication_repeat"]
-    )
+    output_index = repeat_args.index(str(paths["publication"]))
+    repeat_args[output_index] = str(paths["publication_repeat"])
     commands.append(_run(repeat_args))
 
     evaluation = _read(paths["evaluation"])
@@ -191,14 +197,18 @@ def main() -> int:
     publication_repeat = _read(paths["publication_repeat"])
 
     channels = {item["channel"]: item for item in publication["channels"]}
-    repeated = {item["channel"]: item for item in publication_repeat["channels"]}
+    repeated = {
+        item["channel"]: item for item in publication_repeat["channels"]
+    }
     summary = {
         "status": "complete",
         "duration_seconds": round(time.monotonic() - started, 4),
         "metric": evaluation["metric"],
         "f1_before": evaluation["candidate"],
         "f1_after": validation["post_repair_evaluation"]["candidate"],
-        "invalid_values_after": validation["post_repair_evaluation"]["invalid_values"],
+        "invalid_values_after": validation["post_repair_evaluation"][
+            "invalid_values"
+        ],
         "context_provider": context["provider"],
         "upstream_assets": len(context["upstream"]),
         "downstream_assets": len(context["downstream"]),
@@ -228,7 +238,10 @@ def main() -> int:
     print("=" * 30)
     print(f"F1: {summary['f1_before']} -> {summary['f1_after']}")
     print(f"Diagnosis: {summary['top_hypothesis']} ({summary['top_score']})")
-    print(f"Repair: {summary['repair_status']} | guard={summary['patch_guard']}")
+    print(
+        f"Repair: {summary['repair_status']} | "
+        f"guard={summary['patch_guard']}"
+    )
     print(
         f"Publish: GitHub={channels['github']['action']} "
         f"DataHub={channels['datahub']['action']}"
