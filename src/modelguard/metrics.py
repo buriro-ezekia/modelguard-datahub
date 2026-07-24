@@ -57,7 +57,14 @@ class MetricEvaluation:
     @property
     def failed(self) -> bool:
         """Return whether the adverse change exceeds the configured tolerance."""
-        return self.regression_amount > self.policy.maximum_allowed_regression
+        regression = self.regression_amount
+        threshold = self.policy.maximum_allowed_regression
+        return regression > threshold and not math.isclose(
+            regression,
+            threshold,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        )
 
     @property
     def status(self) -> Literal["passed", "failed"]:
