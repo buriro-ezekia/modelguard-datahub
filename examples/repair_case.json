@@ -1,0 +1,18 @@
+{
+  "strategy": "guarded_division",
+  "target_file": "src/features/customer_features.py",
+  "target_symbol": "calculate_monthly_spend",
+  "denominator": "account_age_months",
+  "fallback": "0.0",
+  "allowed_paths": [
+    "src/features/"
+  ],
+  "validation": {
+    "commands": [
+      ["{python}", "-m", "pytest", "tests/test_customer_features.py", "-q"],
+      ["{python}", "evaluate_model.py", "--output", "artifacts/post_repair_evaluation.json"]
+    ],
+    "metric_output": "artifacts/post_repair_evaluation.json",
+    "timeout_seconds": 60
+  }
+}
