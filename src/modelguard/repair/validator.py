@@ -206,6 +206,9 @@ class RepairValidator:
     @staticmethod
     def _run_command(command: tuple[str, ...], workspace: Path, timeout: int) -> CommandResult:
         started = time.monotonic()
+        display_command = (
+            ("{python}", *command[1:]) if command[0] == sys.executable else command
+        )
         environment = os.environ.copy()
         python_path = os.pathsep.join(
             filter(
@@ -226,7 +229,7 @@ class RepairValidator:
                 shell=False,
             )
             return CommandResult(
-                command=command,
+                command=tuple(display_command),
                 return_code=completed.returncode,
                 stdout=completed.stdout[-12000:],
                 stderr=completed.stderr[-12000:],
@@ -234,7 +237,7 @@ class RepairValidator:
             )
         except subprocess.TimeoutExpired as exc:
             return CommandResult(
-                command=command,
+                command=tuple(display_command),
                 return_code=124,
                 stdout=_timeout_text(exc.stdout),
                 stderr=_timeout_text(exc.stderr),
