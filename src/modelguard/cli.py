@@ -16,13 +16,23 @@ from modelguard.diagnosis.ranking import RankingPolicy
 from modelguard.metrics import MetricEvaluation, MetricPolicy
 from modelguard.models import ContextSnapshot
 from modelguard.orchestrator import ContextCollector
-from modelguard.reporting import render_diagnosis_markdown
+from modelguard.repair import (
+    ConstrainedRepairGenerator,
+    RepairCase,
+    RepairGenerationError,
+    RepairValidationError,
+    RepairValidator,
+)
+from modelguard.reporting import render_diagnosis_markdown, render_repair_markdown
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="modelguard",
-        description="Detect ML regressions, collect DataHub evidence and rank root causes.",
+        description=(
+            "Detect ML regressions, collect DataHub evidence, rank root causes and "
+            "validate constrained repairs."
+        ),
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -76,6 +86,19 @@ def build_parser() -> argparse.ArgumentParser:
     diagnose.add_argument("--markdown-output", type=Path)
     diagnose.add_argument("--min-confidence", type=float, default=0.45)
     diagnose.add_argument("--min-margin", type=float, default=0.08)
+
+    repair = subparsers.add_parser(
+        "repair",
+        help="Generate and independently validate a constrained repair.",
+    )
+    repair.add_argument("--diagnosis", type=Path, required=True)
+    repair.add_argument("--evaluation", type=Path, required=True)
+    repair.add_argument("--case", type=Path, required=True)
+    repair.add_argument("--workspace", type=Path, required=True)
+    repair.add_argument("--plan-output", type=Path, required=True)
+    repair.add_argument("--validation-output", type=Path, required=True)
+    repair.add_argument("--patch-output", type=Path, required=True)
+    repair.add_argument("--markdown-output", type=Path)
 
     return parser
 
@@ -155,6 +178,40 @@ def run_diagnose(args: argparse.Namespace) -> int:
     return 0 if report.status == "ranked" else 3
 
 
+def run_repair(args: argparse.Namespace) -> int:
+    diagnosis = _read_json(args.diagnosis)
+    evaluation = _read_json(args.evaluation)
+    case = RepairCase.from_dict(_read_json(args.case))
+    plan = ConstrainedRepairGenerator().generate(
+        diagnosis=diagnosis,
+        case=case,
+        workspace=args.workspace,
+    )
+    validation = RepairValidator().validate(
+        plan=plan,
+        case=case,
+        evaluation=evaluation,
+        workspace=args.workspace,
+    )
+    _write_json(plan.to_dict(), args.plan_output)
+    _write_json(validation.to_dict(), args.validation_output)
+    if validation.status == "validated":
+        args.patch_output.parent.mkdir(parents=True, exist_ok=True)
+        args.patch_output.write_text(plan.combined_diff, encoding="utf-8")
+    if args.markdown_output is not None:
+        args.markdown_output.parent.mkdir(parents=True, exist_ok=True)
+        args.markdown_output.write_text(
+            render_repair_markdown(plan, validation),
+            encoding="utf-8",
+        )
+    print(json.dumps(validation.to_dict(), indent=2, sort_keys=True))
+    if validation.status == "validated":
+        return 0
+    if validation.status == "rejected":
+        return 4
+    return 5
+
+
 def _read_json(path: Path) -> dict[str, Any]:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -165,6 +222,14 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"expected a JSON object in {path}")
     return value
+
+
+def _write_json(payload: dict[str, Any], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def _render_json(payload: dict[str, Any], output: Path | None) -> None:
@@ -187,7 +252,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             return run_context_check(args)
         if args.command == "diagnose":
             return run_diagnose(args)
-    except (ConfigurationError, DataHubContextError, DiagnosisError, ValueError) as exc:
+        if args.command == "repair":
+            return run_repair(args)
+    except (
+        ConfigurationError,
+        DataHubContextError,
+        DiagnosisError,
+        RepairGenerationError,
+        RepairValidationError,
+        ValueError,
+    ) as exc:
         print(f"modelguard: {exc}", file=sys.stderr)
         return 2
 
