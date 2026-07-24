@@ -2,17 +2,18 @@
 
 > What if your CI/CD pipeline did not merely catch a model regression, but traced the cause, generated a repair, validated it, and handed the engineer a review-ready fix?
 
-ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. It combines deterministic model evaluation, DataHub context, evidence-backed diagnosis and constrained repair validation so every decision remains inspectable.
+ModelGuard is an open-source, metadata-aware CI agent for machine-learning systems. It combines deterministic model evaluation, DataHub context, evidence-backed diagnosis, constrained repair validation and idempotent outcome publication so every decision remains inspectable.
 
 ## Project status
 
 - **Phase 1 — complete:** deterministic metric-regression gate.
 - **Phase 2 — complete:** provider-neutral DataHub entity, schema and lineage context collection through the Python SDK, MCP Server or deterministic fixtures.
 - **Phase 3 — complete:** evidence extraction, competing root-cause hypotheses, transparent ranking and abstention.
-- **Phase 4 — implemented:** constrained repair generation, static patch guardrails and isolated independent validation.
-- **Phase 5 — next:** GitHub reporting and DataHub incident or resolution write-back.
+- **Phase 4 — complete:** constrained repair generation, static patch guardrails and isolated independent validation.
+- **Phase 5 — implemented:** review-ready GitHub reporting and DataHub incident lifecycle write-back.
+- **Phase 6 — next:** hosted demonstration and hackathon submission assets.
 
-Phase 4 does not merge or apply a patch to the source branch. A proposal is labelled `validated` only after static guardrails, targeted tests and the original metric policy all pass inside a temporary workspace.
+ModelGuard never applies or merges its own repair. Publication is dry-run by default and external writes require explicit `--apply`.
 
 ## Implemented workflow
 
@@ -29,9 +30,7 @@ High-confidence supported hypothesis?
         ├── No  → abstain; no repair generated
         └── Yes
               ↓
-AST-based minimal repair proposal
-              ↓
-Static patch guardrails
+Phase 4 minimal repair + static guardrails
               ↓
 Temporary isolated workspace
               ↓
@@ -39,36 +38,38 @@ Compile + targeted tests + model evaluation
               ↓
 Metric restored within policy?
         ├── No  → validation failed; patch withheld
-        └── Yes → validated diff and review report
+        └── Yes
+              ↓
+Phase 5 validated-only publication gate
+              ↓
+One idempotent GitHub PR comment
+              +
+One resolved DataHub incident lifecycle record
 ```
 
 ## Safety model
 
-ModelGuard separates diagnosis, generation and validation.
+ModelGuard separates diagnosis, generation, validation and publication.
 
 - Root-cause ranking does not authorise a code change.
 - The Phase 4 MVP supports only the explicit `guarded_division` strategy.
 - The leading hypothesis must be `feature_transformation`, high confidence and score at least `0.8`.
-- The target file must be cited by changed-file evidence.
-- The diagnosed denominator must be one of the affected fields.
-- Only one allowed Python file may change.
+- Only one cited Python file may change.
 - Protected areas such as `.github/`, `config/`, `scripts/` and `src/modelguard/` are denied.
-- Oversized patches and unsafe tokens are rejected before execution.
-- Validation commands run without a shell and only through an allow-listed Python executable.
+- Validation commands run without a shell through an allow-listed Python executable.
 - The patch is applied only to a temporary copy.
 - The original workspace is hashed before and after validation.
 - A patch is withheld unless tests pass and the Phase 1 metric gate is restored.
+- Publication requires a ranked high-confidence diagnosis, approved patch guard, restored metric, matching repair IDs and unchanged source workspace.
+- Publication is dry-run unless `--apply` is supplied.
+- Stable delivery markers prevent duplicate GitHub comments and DataHub incidents.
+- Credentials are read only from environment variables and are never placed in receipts.
 - ModelGuard never merges its own repair.
 
 ## Codespaces quick start
 
 ```bash
 source scripts/bootstrap_codespace.sh
-```
-
-Run the complete verification suite:
-
-```bash
 ruff check .
 pytest
 ```
@@ -88,8 +89,6 @@ Exit status `1` means the adverse change exceeded the configured tolerance.
 
 ## Phase 2: collect DataHub context
 
-The committed fixture is safe for CI and requires no credentials:
-
 ```bash
 python -m modelguard context check --provider fixture
 
@@ -99,7 +98,7 @@ python -m modelguard context collect \
   --output artifacts/context_snapshot.json
 ```
 
-The snapshot contains the model, schema, ownership, quality signals, three upstream lineage hops and one downstream deployment.
+The deterministic snapshot contains the model, schema, ownership, quality signals, three upstream lineage hops and one downstream deployment.
 
 ## Phase 3: diagnose the regression
 
@@ -123,13 +122,11 @@ Affected fields: monthly_spend, account_age_months, total_spend
 
 Phase 3 exit statuses:
 
-- `0`: evidence thresholds were met and hypotheses were ranked;
+- `0`: hypotheses were ranked;
 - `2`: input or configuration validation failed;
 - `3`: ModelGuard abstained because evidence was insufficient or ambiguous.
 
 ## Phase 4: generate and validate a constrained repair
-
-The committed demonstration workspace contains the diagnosed unsafe division. ModelGuard creates the proposal in memory and validates it only in an isolated copy:
 
 ```bash
 python -m modelguard repair \
@@ -143,7 +140,7 @@ python -m modelguard repair \
   --markdown-output artifacts/validated_repair_report.md
 ```
 
-Expected verified result:
+Expected result:
 
 ```text
 Repair status: validated
@@ -156,37 +153,106 @@ Invalid transformed values: 0
 
 Phase 4 exit statuses:
 
-- `0`: the constrained repair passed guardrails, tests and metric validation;
+- `0`: repair passed guardrails, tests and metric validation;
 - `2`: input, generation or validation configuration was invalid;
-- `4`: the static patch guard rejected the proposal;
+- `4`: static patch guard rejected the proposal;
 - `5`: isolated tests or the post-repair metric gate failed.
 
-### Repair artefacts
+## Phase 5: publish the validated outcome
 
-- `repair_plan.json`: diagnosis link, strategy, hashes, exact replacement and unified diff.
-- `repair_validation.json`: guardrail decisions, command results and post-repair metric gate.
-- `validated_patch.diff`: emitted only when validation succeeds.
-- `validated_repair_report.md`: review-ready explanation and safety statement.
+### Safe fixture publication
 
-The generated fix for the demonstration is intentionally minimal:
+Fixture mode creates deterministic local state files and does not contact external systems:
 
-```python
-if account_age_months <= 0:
-    return 0.0
-return total_spend / account_age_months
+```bash
+python -m modelguard publish \
+  --diagnosis artifacts/diagnosis_report.json \
+  --repair-plan artifacts/repair_plan.json \
+  --validation artifacts/repair_validation.json \
+  --patch artifacts/validated_patch.diff \
+  --github-mode fixture \
+  --datahub-mode fixture \
+  --apply \
+  --github-state artifacts/github_publication_state.json \
+  --datahub-state artifacts/datahub_incident_state.json \
+  --output artifacts/publication_receipt.json \
+  --markdown-output artifacts/publication_report.md \
+  --comment-output artifacts/github_pr_comment.md
 ```
 
-## Phase 3 ranking policy
+The first execution should report:
 
-| Signal | Maximum contribution |
-|---|---:|
-| Temporal proximity to the regression | 0.25 |
-| Relevance to the DataHub lineage path | 0.25 |
-| Ability to explain the failed metric | 0.20 |
-| Quality or profile corroboration | 0.20 |
-| Asset and field specificity | 0.10 |
+```text
+GitHub action: created
+DataHub action: raised_and_resolved
+Publication status: published
+```
 
-Counter-evidence and low evidence diversity reduce the score. ModelGuard abstains when the top score is too low or the leading margin is too small.
+Running the same command again should report:
+
+```text
+GitHub action: noop
+DataHub action: noop
+```
+
+Omit `--apply` to perform a dry run. Dry-run mode produces the plan and receipt but creates no fixture state and performs no live writes.
+
+### Live GitHub publication
+
+The authenticated token must be able to create and update pull-request issue comments:
+
+```bash
+export GITHUB_TOKEN="scoped-github-token"
+
+python -m modelguard publish \
+  --diagnosis artifacts/diagnosis_report.json \
+  --repair-plan artifacts/repair_plan.json \
+  --validation artifacts/repair_validation.json \
+  --patch artifacts/validated_patch.diff \
+  --github-mode live \
+  --datahub-mode off \
+  --apply \
+  --output artifacts/github_publication_receipt.json
+```
+
+ModelGuard searches for its hidden delivery marker and creates, updates or leaves unchanged one PR comment.
+
+### Live DataHub incident write-back
+
+The current incident writer targets DataHub GraphQL and requires incident-edit privileges. The affected asset must be a Dataset URN.
+
+```bash
+export DATAHUB_GRAPHQL_URL="https://your-datahub.example.com/api/graphql"
+export DATAHUB_GRAPHQL_TOKEN="scoped-datahub-token"
+
+python -m modelguard publish \
+  --diagnosis artifacts/diagnosis_report.json \
+  --repair-plan artifacts/repair_plan.json \
+  --validation artifacts/repair_validation.json \
+  --patch artifacts/validated_patch.diff \
+  --github-mode off \
+  --datahub-mode live \
+  --apply \
+  --output artifacts/datahub_publication_receipt.json
+```
+
+`DATAHUB_GMS_URL` and `DATAHUB_GMS_TOKEN` are accepted as fallbacks. When only `DATAHUB_GMS_URL` is set, ModelGuard appends `/api/graphql`.
+
+### Phase 5 artefacts
+
+- `publication_receipt.json`: delivery plan and per-channel receipts.
+- `publication_report.md`: human-readable publication evidence.
+- `github_pr_comment.md`: exact review-ready comment body.
+- `github_publication_state.json`: deterministic fixture comment state.
+- `datahub_incident_state.json`: deterministic fixture incident state.
+
+Phase 5 exit statuses:
+
+- `0`: dry run completed or all enabled channels published/no-op successfully;
+- `2`: input or safety validation failed;
+- `6`: at least one enabled publication channel failed.
+
+Verified examples are committed under `examples/`.
 
 ## Connect through the DataHub Python SDK
 
@@ -198,10 +264,6 @@ export DATAHUB_GMS_TOKEN="your-service-account-token"
 export MODELGUARD_DATAHUB_PROVIDER="sdk"
 
 python -m modelguard context check --provider sdk
-python -m modelguard context collect \
-  --provider sdk \
-  --urn "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)" \
-  --output artifacts/live_sdk_context.json
 ```
 
 ## Connect through the DataHub MCP Server
@@ -214,27 +276,11 @@ export DATAHUB_MCP_TOKEN="your-service-account-token"
 export MODELGUARD_DATAHUB_PROVIDER="mcp"
 
 python -m modelguard context check --provider mcp
-python -m modelguard context collect \
-  --provider mcp \
-  --lineage-direction both \
-  --output artifacts/live_mcp_context.json
-```
-
-For self-hosted DataHub, point `DATAHUB_MCP_URL` at the self-hosted MCP endpoint. Tokens are sent only through environment-configured authentication headers.
-
-## Live integration test
-
-Live verification is opt-in and skipped in ordinary CI:
-
-```bash
-export MODELGUARD_LIVE_DATAHUB=1
-export MODELGUARD_DATAHUB_PROVIDER=sdk  # or mcp
-pytest -m live_datahub
 ```
 
 ## Configuration
 
-- `config/modelguard.yml`: non-secret DataHub settings.
+- `config/modelguard.yml`: non-secret DataHub retrieval settings.
 - `config/thresholds.yml`: deterministic metric policies.
 - `examples/regression_case.json`: changed files and deterministic observations.
 - `examples/repair_case.json`: permitted repair target, strategy and validation commands.
@@ -247,7 +293,7 @@ Secrets, raw production rows and unrestricted repository access are not required
 2. DataHub SDK and MCP context retrieval;
 3. evidence-backed root-cause ranking;
 4. constrained repair generation and independent validation;
-5. GitHub reporting and DataHub incident or resolution write-back;
+5. GitHub reporting and DataHub incident lifecycle write-back;
 6. hosted demonstration and hackathon submission assets.
 
 ## Security

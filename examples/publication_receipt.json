@@ -1,0 +1,41 @@
+{
+  "applied": true,
+  "channels": [
+    {
+      "action": "created",
+      "channel": "github",
+      "details": {
+        "state_path": "artifacts/github_publication_state.json"
+      },
+      "external_id": "fixture-comment-1",
+      "mode": "fixture",
+      "status": "published",
+      "url": "https://github.com/buriro-ezekia/modelguard-datahub/pull/12#issuecomment-fixture-comment-1"
+    },
+    {
+      "action": "raised_and_resolved",
+      "channel": "datahub",
+      "details": {
+        "asset_urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)",
+        "incident_state": "RESOLVED",
+        "state_path": "artifacts/datahub_incident_state.json"
+      },
+      "external_id": "urn:li:incident:modelguard-43a1891cc0d4",
+      "mode": "fixture",
+      "status": "published",
+      "url": null
+    }
+  ],
+  "delivery_id": "delivery-43a1891cc0d4",
+  "plan": {
+    "datahub_asset_urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)",
+    "datahub_incident_title": "ModelGuard repaired f1_score regression",
+    "datahub_resolution_message": "Validated repair repair-d359e2c30c02 restored f1_score from 0.771 to 0.842; validation validation-fff0b9f0b068. Source workspace unchanged.",
+    "delivery_id": "delivery-43a1891cc0d4",
+    "marker": "<!-- modelguard:delivery:delivery-43a1891cc0d4 -->",
+    "pull_request": 12,
+    "repository": "buriro-ezekia/modelguard-datahub"
+  },
+  "status": "published",
+  "warnings": []
+}

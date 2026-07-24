@@ -1,0 +1,15 @@
+{
+  "incidents": [
+    {
+      "custom_type": "ModelGuard",
+      "delivery_id": "delivery-43a1891cc0d4",
+      "description": "[modelguard-delivery:delivery-43a1891cc0d4]\nPull request: https://github.com/buriro-ezekia/modelguard-datahub/pull/12\nDiagnosis: Changed feature transformation introduced invalid values\nConfidence: high (1.0000)\nBefore repair: 0.771\nAfter repair: 0.842\nValidation: validation-fff0b9f0b068\nRepair: repair-d359e2c30c02",
+      "resolution_message": "Validated repair repair-d359e2c30c02 restored f1_score from 0.771 to 0.842; validation validation-fff0b9f0b068. Source workspace unchanged.",
+      "resource_urn": "urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)",
+      "state": "RESOLVED",
+      "title": "ModelGuard repaired f1_score regression",
+      "type": "CUSTOM",
+      "urn": "urn:li:incident:modelguard-43a1891cc0d4"
+    }
+  ]
+}
