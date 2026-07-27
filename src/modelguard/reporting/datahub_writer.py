@@ -43,7 +43,7 @@ mutation RaiseModelGuardIncident($input: RaiseIncidentInput!) {
 _RESOLVE_MUTATION = """
 mutation ResolveModelGuardIncident(
   $urn: String!,
-  $input: UpdateIncidentStatusInput!
+  $input: IncidentStatusInput!
 ) {
   updateIncidentStatus(urn: $urn, input: $input)
 }
