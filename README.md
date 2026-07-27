@@ -2,21 +2,36 @@
 
 [![ModelGuard CI](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/modelguard.yml/badge.svg)](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/modelguard.yml)
 [![Deploy demo](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/pages.yml/badge.svg)](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/pages.yml)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
 
-> What if your CI/CD pipeline did not merely catch a model regression, but traced the cause, generated the smallest supported repair, validated it independently and preserved the resolved incident in DataHub?
+> What if a CI/CD pipeline did not merely detect a model regression, but traced its cause through DataHub, proposed the smallest defensible repair, validated it independently and preserved the outcome for the next engineer or agent?
 
-ModelGuard is an open-source, metadata-aware CI agent for production machine-learning systems. It combines deterministic model evaluation, DataHub context, evidence-backed diagnosis, constrained repair validation and idempotent outcome publication so every decision remains inspectable.
+ModelGuard is a metadata-aware production ML agent. It turns a failed model-quality gate into an evidence-backed investigation, a constrained repair proposal and a durable operational record. DataHub supplies the schema, ownership, quality and lineage context; deterministic policies decide whether ModelGuard may diagnose, repair, validate or publish.
 
-**Hosted demonstration:** <https://buriro-ezekia.github.io/modelguard-datahub/>  
-**Judge in one command:** `python scripts/run_showcase.py`  
-**Challenge category:** Production ML Agents
+ModelGuard never merges its own repair. It produces a review-ready result while keeping the final decision with an engineer.
 
-![ModelGuard hosted demo](docs/assets/screenshot-overview.svg)
+| Judge-facing resource | Link |
+|---|---|
+| Interactive demonstration | [Open the hosted demo](https://buriro-ezekia.github.io/modelguard-datahub/) |
+| Demonstration video | [Watch the 2 minute 34 second video](https://youtu.be/S96pbK7k_nc) |
+| Sample generated artefacts | [Inspect `examples/`](examples/) |
+| Fast judging guide | [Read the judging guide](submission/JUDGING_GUIDE.md) |
+| Reproduction instructions | [Read the testing instructions](submission/TESTING_INSTRUCTIONS.md) |
+| Challenge category | **Production ML Agents** |
 
-## Verified result
+![ModelGuard hosted demonstration](docs/assets/screenshot-overview.svg)
 
-The deterministic demonstration models a churn feature regression:
+## Why ModelGuard exists
+
+A production model can deteriorate because of a change that looks ordinary in code review: a removed boundary check, an altered schema, a null-handling mistake or a feature transformation that behaves badly at the edge of its valid range.
+
+A conventional CI pipeline can report that a metric fell. It usually cannot explain which upstream asset mattered, distinguish the leading cause from plausible alternatives, test a narrowly scoped correction and write the resolved knowledge back into the metadata graph.
+
+ModelGuard closes that gap. It behaves like a careful ML platform engineer: collect evidence first, consider competing explanations, act only inside explicit boundaries and verify every claim before publication.
+
+## Verified demonstration
+
+The deterministic showcase models a churn feature regression introduced by direct division in a feature transformation.
 
 ```text
 F1 gate:               0.842 → 0.771 (failed)
@@ -30,37 +45,66 @@ GitHub first/repeat:    created / noop
 DataHub first/repeat:   raised_and_resolved / noop
 ```
 
+These results are not typed into the website as unsupported claims. The one-command showcase executes the project CLI and writes the evidence, diagnosis, patch, validation and publication receipts to `artifacts/showcase/`. GitHub Actions checks the same expected outcome.
+
+## Judge it quickly
+
+### Fastest route: hosted demonstration
+
+Open the [interactive demonstration](https://buriro-ezekia.github.io/modelguard-datahub/) and select **Replay the incident**. The site is a read-only replay of verified fixture artefacts, so it requires no login, token or external service.
+
+### Reproduce the complete flow
+
+```bash
+python scripts/run_showcase.py
+```
+
+Expected summary:
+
+```text
+ModelGuard showcase complete
+F1: 0.771 -> 0.842
+Diagnosis: feature_transformation (1.0)
+Repair: validated | guard=True
+Publish: GitHub=created DataHub=raised_and_resolved
+Repeat: GitHub=noop DataHub=noop
+```
+
+### Inspect the output without running anything
+
+The [`examples/`](examples/) folder contains the generated JSON, Markdown and diff artefacts for every stage, including the root-cause report, validated repair, GitHub comment and DataHub incident record.
+
 ## Six guarded phases
 
 ```text
 Failed model evaluation
         ↓
-1. Deterministic regression gate
+1. Detect: deterministic regression gate
         ↓
-2. DataHub schema, ownership, quality and lineage context
+2. Context: DataHub schema, ownership, quality and lineage
         ↓
-3. Evidence registry + competing root-cause hypotheses
+3. Diagnose: evidence registry and competing hypotheses
         ↓
 High-confidence supported diagnosis?
    ├── No  → abstain; no repair
    └── Yes
         ↓
-4. Minimal constrained repair + static patch guard
+4. Repair: minimal constrained patch and static guard
         ↓
-5. Temporary workspace + compile + tests + model evaluation
+5. Validate: temporary workspace, compile, tests and model evaluation
         ↓
 Metric restored within policy?
-   ├── No  → patch withheld
+   ├── No  → withhold the patch
    └── Yes
         ↓
-6. One idempotent GitHub comment + one resolved DataHub incident
+6. Publish: one GitHub review comment and one resolved DataHub incident
 ```
 
-### Phase 1 — Detect
+### 1. Detect
 
-`modelguard evaluate` compares an approved baseline with a candidate metric. A regression beyond the configured tolerance returns exit status `1` and emits stable JSON.
+`modelguard evaluate` compares the candidate metric with an approved baseline. A regression beyond the configured tolerance returns exit status `1` and emits stable JSON. Agent reasoning cannot override this numerical gate.
 
-### Phase 2 — Context
+### 2. Collect DataHub context
 
 `modelguard context collect` resolves entity metadata, schema, ownership, quality signals and bidirectional lineage through one of three providers:
 
@@ -68,31 +112,67 @@ Metric restored within policy?
 - DataHub MCP Server over Streamable HTTP; or
 - deterministic fixture mode for CI and public evaluation.
 
-### Phase 3 — Diagnose
+### 3. Diagnose
 
-`modelguard diagnose` extracts evidence, generates competing hypotheses and ranks them using temporal proximity, lineage relevance, metric explanation, quality corroboration and field specificity. Counter-evidence reduces scores. Weak or ambiguous evidence causes explicit abstention.
+`modelguard diagnose` extracts evidence, generates competing hypotheses and ranks them using temporal proximity, lineage relevance, metric explanation, quality corroboration and field specificity. Counter-evidence lowers unsupported explanations. Weak or ambiguous evidence causes explicit abstention.
 
-### Phase 4 — Repair and validate
+### 4. Propose a constrained repair
 
-`modelguard repair` currently supports the explicit `guarded_division` strategy used by the demonstration. It applies strict path, file-count, line-budget, file-type and unsafe-token rules, then validates the patch only inside a temporary copy.
+`modelguard repair` currently supports the explicit `guarded_division` strategy used by the demonstration. It enforces path, file-count, line-budget, file-type and unsafe-token rules before a patch may proceed.
 
-### Phase 5 — Publish
+### 5. Validate independently
 
-`modelguard publish` requires a ranked high-confidence diagnosis, approved patch guard, restored metric, matching repair identifiers and an unchanged source workspace. Publication is dry-run by default. Stable delivery markers prevent duplicate GitHub comments and DataHub incidents.
+The patch is applied only inside a temporary copy. ModelGuard compiles the code, runs allow-listed tests and repeats the original metric evaluation. The source workspace is hashed before and after validation and must remain unchanged.
 
-### Phase 6 — Showcase and submission
+### 6. Publish once
 
-The repository includes:
+`modelguard publish` requires a high-confidence diagnosis, an approved patch guard, a restored metric, matching repair identifiers and an unchanged source workspace. Publication is a dry run unless `--apply` is explicit. Stable delivery markers prevent duplicate GitHub comments and DataHub incidents.
 
-- a responsive dependency-free GitHub Pages demonstration under `docs/`;
-- a one-command end-to-end showcase;
-- a judging guide and testing instructions;
-- a complete Devpost description draft;
-- an under-three-minute video script and shot list;
-- desktop, evidence and mobile screenshots; and
-- an automated submission-asset verifier.
+## Why DataHub is essential
 
-## Quick start
+ModelGuard does not diagnose the failure from the changed line alone. DataHub gives it the connected operational picture:
+
+- the path from raw customers to customer features, training data, the model and the production deployment;
+- the schema and affected fields;
+- ownership and quality signals;
+- upstream and downstream relevance; and
+- a place to preserve the resolved incident for later investigations.
+
+This context changes the diagnosis. The unchanged zero-age source rows count as counter-evidence against blaming source data alone, while the changed feature transformation sits on the relevant lineage path and explains the 37 new infinite values.
+
+## Demonstrated repair
+
+```diff
+ def calculate_monthly_spend(
+     total_spend: float,
+     account_age_months: int,
+ ) -> float:
++    if account_age_months <= 0:
++        return 0.0
+     return total_spend / account_age_months
+```
+
+The proposal changes two lines in one cited function. ModelGuard validates it in isolation and never applies or merges it into the source repository.
+
+![Evidence-backed diagnosis and validated patch](docs/assets/screenshot-evidence.svg)
+
+## Safety boundaries
+
+- Deterministic metric detection precedes diagnosis.
+- Root-cause ranking does not authorise a code change.
+- Low-confidence or closely ranked diagnoses abstain.
+- Only a cited file and approved repair strategy may be changed.
+- `.github/`, `config/`, `scripts/` and `src/modelguard/` are protected from generated patches.
+- Validation commands use `shell=False` and an allow-listed Python executable.
+- Repairs are tested in a temporary workspace.
+- The original workspace must remain hash-identical.
+- The original metric policy must pass after repair.
+- Publication remains a dry run unless `--apply` is explicit.
+- Credentials come from environment variables and never enter receipts.
+- Stable markers make GitHub and DataHub publication idempotent.
+- ModelGuard never merges its own repair.
+
+## Installation and local reproduction
 
 ### GitHub Codespaces
 
@@ -101,7 +181,9 @@ source scripts/bootstrap_codespace.sh
 python scripts/run_showcase.py
 ```
 
-### Local installation
+### Local Python
+
+Requirements: Python 3.11 or 3.12 and Git.
 
 ```bash
 git clone https://github.com/buriro-ezekia/modelguard-datahub.git
@@ -115,53 +197,13 @@ pytest
 python scripts/run_showcase.py
 ```
 
-The showcase needs no credentials and writes only to `artifacts/showcase/`.
+The showcase requires no credentials and writes only to `artifacts/showcase/`.
 
-## One-command showcase
+## Live DataHub integration
 
-```bash
-python scripts/run_showcase.py
-```
+Fixture mode makes judging reproducible, while the same provider interface supports real DataHub environments.
 
-Expected final summary:
-
-```text
-ModelGuard showcase complete
-F1: 0.771 -> 0.842
-Diagnosis: feature_transformation (1.0)
-Repair: validated | guard=True
-Publish: GitHub=created DataHub=raised_and_resolved
-Repeat: GitHub=noop DataHub=noop
-```
-
-The command executes the real CLI for all six phases and writes:
-
-- `evaluation.json`;
-- `context_snapshot.json`;
-- `diagnosis_report.json` and `root_cause_report.md`;
-- `repair_plan.json`, `repair_validation.json` and `validated_patch.diff`;
-- `publication_receipt.json`, `github_pr_comment.md` and fixture states; and
-- `showcase_summary.json`.
-
-## The demonstrated repair
-
-```diff
- def calculate_monthly_spend(
-     total_spend: float,
-     account_age_months: int,
- ) -> float:
-+    if account_age_months <= 0:
-+        return 0.0
-     return total_spend / account_age_months
-```
-
-The proposal is applied only to an isolated copy. The source workspace is hashed before and after validation, and ModelGuard never applies or merges its own repair.
-
-![Evidence-backed diagnosis and validated patch](docs/assets/screenshot-evidence.svg)
-
-## DataHub integration
-
-### Python SDK
+### DataHub Python SDK
 
 ```bash
 pip install -e ".[datahub]"
@@ -171,7 +213,7 @@ export MODELGUARD_DATAHUB_PROVIDER="sdk"
 python -m modelguard context check --provider sdk
 ```
 
-### MCP Server
+### DataHub MCP Server
 
 ```bash
 pip install -e ".[mcp]"
@@ -181,7 +223,7 @@ export MODELGUARD_DATAHUB_PROVIDER="mcp"
 python -m modelguard context check --provider mcp
 ```
 
-### Live incident write-back
+### DataHub incident write-back
 
 ```bash
 export DATAHUB_GRAPHQL_URL="https://your-datahub.example.com/api/graphql"
@@ -198,63 +240,62 @@ python -m modelguard publish \
   --output artifacts/datahub_publication_receipt.json
 ```
 
-## Safety model
+Live context and publication remain opt-in. Use the smallest practical service-account scope and never commit tokens.
 
-- Deterministic metric detection precedes reasoning.
-- Root-cause ranking does not authorise code changes.
-- Low-confidence or close-score diagnoses abstain.
-- Only a cited file and approved repair strategy may be changed.
-- `.github/`, `config/`, `scripts/` and `src/modelguard/` are protected from generated patches.
-- Validation commands use `shell=False` and an allow-listed Python executable.
-- Repairs are tested in a temporary workspace.
-- The original workspace must remain hash-identical.
-- The original metric policy must pass after repair.
-- Publication is dry-run unless `--apply` is explicit.
-- Credentials come only from environment variables and never enter receipts.
-- Stable markers make GitHub and DataHub publication idempotent.
-- ModelGuard never merges its own repair.
+## Generated artefacts
 
-## Judge-facing assets
+The showcase writes:
 
-- [Judging guide](submission/JUDGING_GUIDE.md)
-- [Testing instructions](submission/TESTING_INSTRUCTIONS.md)
-- [Devpost draft](submission/DEVPOST_DRAFT.md)
-- [Video script](submission/DEMO_SCRIPT.md)
-- [Video shot list](submission/VIDEO_SHOT_LIST.md)
-- [Release checklist](submission/RELEASE_CHECKLIST.md)
-- [Sample outputs](examples/)
+- `evaluation.json`;
+- `context_snapshot.json`;
+- `diagnosis_report.json` and `root_cause_report.md`;
+- `repair_plan.json`, `repair_validation.json` and `validated_patch.diff`;
+- `publication_receipt.json`, `github_pr_comment.md` and fixture state files; and
+- `showcase_summary.json`.
 
-Verify the package:
+Run the submission verifier with:
 
 ```bash
 python scripts/verify_submission.py
 ```
 
-The verifier confirms all hosted-site references, visual assets and required submission sections. The only intentionally manual final field is the public video URL after recording and upload.
+## Current scope and honest limitations
+
+ModelGuard is a focused hackathon implementation rather than a general autonomous coding system.
+
+- The current repair catalogue contains one explicit strategy: `guarded_division`.
+- The public website is an interactive replay, not a browser-based live DataHub client.
+- The reproducible showcase uses deterministic DataHub-shaped fixtures; live SDK and MCP access require a configured DataHub environment.
+- Evidence extraction, candidate generation and ranking are deterministic, so the public evaluation needs no external model API.
+- Live GitHub and DataHub writes require explicit permission and scoped credentials.
+
+These limits are deliberate. They make the demonstrated claims reproducible and keep repair authority narrower than diagnostic context.
 
 ## Repository layout
 
 ```text
 modelguard-datahub/
 ├── .github/workflows/       # CI and GitHub Pages deployment
-├── config/                  # non-secret settings and thresholds
-├── demo/                    # broken change and expected fix
+├── config/                  # non-secret policies and thresholds
+├── demo/                    # broken transformation and expected repair
 ├── docs/                    # hosted interactive demonstration
 ├── examples/                # verified outputs for every phase
 ├── scripts/                 # Codespaces bootstrap and showcase tools
-├── src/modelguard/          # detection, context, diagnosis, repair, reporting
-├── submission/              # judge, Devpost and video assets
+├── src/modelguard/          # detection, context, diagnosis, repair and reporting
+├── submission/              # judging, Devpost and video materials
 └── tests/                   # unit, integration and regression coverage
 ```
 
 ## Project status
 
-All six implementation phases are repository-complete and CI-verifiable. The hosted Pages deployment becomes public after the repository Pages source is set to **GitHub Actions**. The final hackathon action outside the repository is recording/uploading the public video and pasting its URL into the Devpost form.
+The hackathon build, hosted demonstration, public video, sample artefacts and submission documentation are complete. The repository includes live DataHub SDK, MCP and GraphQL integration paths, while the no-credential judging route remains deterministic and reproducible.
+
+Before final submission, confirm manually that GitHub Pages loads in a private browser window and that the repository **About** section displays the Apache-2.0 licence and hosted website URL.
 
 ## Security
 
-See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling requirements.
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling guidance.
 
-## License
+## Licence
 
 Licensed under the [Apache License 2.0](LICENSE).
