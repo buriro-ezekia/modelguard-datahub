@@ -1,9 +1,10 @@
 {
   "name": "ModelGuard DataHub",
-  "image": "mcr.microsoft.com/devcontainers/python:1-3.11-bookworm",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:4": {}
   },
+  "privileged": true,
   "forwardPorts": [
     9002,
     8080
@@ -18,7 +19,6 @@
       "onAutoForward": "silent"
     }
   },
-  "postCreateCommand": "bash scripts/bootstrap_codespace.sh",
   "customizations": {
     "vscode": {
       "extensions": [
