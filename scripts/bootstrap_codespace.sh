@@ -23,11 +23,13 @@ if ! grep -Fqx "${PATH_LINE}" "${BASH_PROFILE}" 2>/dev/null; then
   } >> "${BASH_PROFILE}"
 fi
 
-${PYTHON_BIN} -m pip install --upgrade pip
-${PYTHON_BIN} -m pip install -e ".[dev]"
+${PYTHON_BIN} -m pip install --upgrade pip wheel setuptools
+${PYTHON_BIN} -m pip install -e ".[dev,datahub]"
 ${PYTHON_BIN} -m ruff check .
 ${PYTHON_BIN} -m pytest
 
 printf '\nModelGuard Codespaces environment is ready.\n'
+printf 'Python version: %s\n' "$(${PYTHON_BIN} --version 2>&1)"
 printf 'Python scripts directory: %s\n' "${PYTHON_SCRIPTS_DIR}"
 printf 'Run the CLI with either: modelguard ... or python -m modelguard ...\n'
+printf 'Start local DataHub with: datahub docker quickstart\n'
