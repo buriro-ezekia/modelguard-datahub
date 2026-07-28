@@ -2,7 +2,7 @@
   "name": "ModelGuard DataHub",
   "image": "mcr.microsoft.com/devcontainers/python:3.11-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:4": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:3": {}
   },
   "privileged": true,
   "forwardPorts": [
