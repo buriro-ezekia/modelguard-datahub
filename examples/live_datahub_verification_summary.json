@@ -1,0 +1,14 @@
+{
+  "downstream_assets": 2,
+  "entity_name": null,
+  "entity_type": null,
+  "entity_urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)",
+  "generated_at": "2026-07-29T09:12:26+00:00",
+  "owners": 0,
+  "platform": null,
+  "provider": "sdk",
+  "quality_signals": 0,
+  "schema_fields": 0,
+  "source_urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)",
+  "upstream_assets": 1
+}

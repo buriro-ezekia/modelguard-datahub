@@ -1,0 +1,8 @@
+{
+  "downstream_count": 2,
+  "entity_type": "dataset",
+  "error": null,
+  "lineage_total": 3,
+  "upstream_count": 1,
+  "urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)"
+}

@@ -1,0 +1,64 @@
+{
+  "downstream": [
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "DATASET",
+      "hops": 2,
+      "name": null,
+      "paths": [],
+      "platform": "snowflake",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,b2fd91.order_entry_db.order_entry.orders,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "DATA_JOB",
+      "hops": 1,
+      "name": "import_table_orders_to_snowflake",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(spark,b2fd91.import_table_orders_to_snowflake,b2fd91.default),b2fd91.import_table_orders_to_snowflake)"
+    }
+  ],
+  "entity": {
+    "description": null,
+    "entity_type": null,
+    "glossary_terms": [],
+    "name": null,
+    "owners": [],
+    "platform": null,
+    "quality_signals": [],
+    "raw": {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)",
+      "value": "Dataset('urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)')"
+    },
+    "schema_fields": [],
+    "tags": [],
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)"
+  },
+  "generated_at": "2026-07-29T09:12:26+00:00",
+  "max_hops": 3,
+  "provider": "sdk",
+  "provider_metadata": {
+    "raw_lineage_counts": {
+      "downstream": 2,
+      "upstream": 1
+    },
+    "sdk_entity_type": "Dataset"
+  },
+  "source_column": null,
+  "source_urn": "urn:li:dataset:(urn:li:dataPlatform:s3,b2fd91.demo-data-bucket/order_entry/orders,PROD)",
+  "upstream": [
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 1,
+      "name": "export_table_orders_to_s3",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(spark,b2fd91.export_table_orders_to_s3,b2fd91.default),b2fd91.export_table_orders_to_s3)"
+    }
+  ]
+}
