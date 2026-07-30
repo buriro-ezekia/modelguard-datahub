@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -61,9 +62,17 @@ class DataHubIncidentWriter:
         token: str | None = None,
         fixture_state: Path | None = None,
         transport: GraphQLTransport | None = None,
+        confirm_visibility: bool | None = None,
+        consistency_attempts: int = 45,
+        consistency_delay_seconds: float = 1.0,
+        sleeper: Callable[[float], None] | None = None,
     ) -> None:
         if mode not in {"off", "fixture", "live"}:
             raise ValueError(f"unsupported DataHub publication mode: {mode}")
+        if consistency_attempts < 1:
+            raise ValueError("consistency_attempts must be at least 1")
+        if consistency_delay_seconds < 0:
+            raise ValueError("consistency_delay_seconds cannot be negative")
         self.mode = mode
         self.graphql_url = graphql_url or _default_graphql_url()
         self.token = token or os.getenv("DATAHUB_GRAPHQL_TOKEN") or os.getenv(
@@ -71,6 +80,12 @@ class DataHubIncidentWriter:
         )
         self.fixture_state = fixture_state
         self.transport = transport or _graphql_request
+        self.confirm_visibility = (
+            transport is None if confirm_visibility is None else confirm_visibility
+        )
+        self.consistency_attempts = consistency_attempts
+        self.consistency_delay_seconds = consistency_delay_seconds
+        self.sleeper = sleeper or time.sleep
 
     def publish(self, plan: PublicationPlan, *, apply: bool) -> ChannelReceipt:
         from modelguard.reporting.publication import ChannelReceipt
@@ -176,7 +191,11 @@ class DataHubIncidentWriter:
                 status="noop",
                 action="noop",
                 external_id=str(existing.get("urn")),
-                details={"asset_urn": plan.datahub_asset_urn},
+                details={
+                    "asset_urn": plan.datahub_asset_urn,
+                    "incident_state": "RESOLVED",
+                    "visibility_confirmed": True,
+                },
             )
         if existing is None:
             result = self.transport(
@@ -213,6 +232,18 @@ class DataHubIncidentWriter:
         resolved = _graphql_value(result, "updateIncidentStatus")
         if resolved not in {True, "true", "True", "1"}:
             raise RuntimeError("DataHub did not confirm incident resolution")
+
+        visibility_confirmed = False
+        if self.confirm_visibility:
+            visible_incident = self._wait_until_resolved(plan, headers)
+            if visible_incident is None:
+                raise RuntimeError(
+                    "DataHub accepted the incident resolution but the delivery marker did not "
+                    "become queryable before the consistency timeout"
+                )
+            incident_urn = str(visible_incident.get("urn") or incident_urn)
+            visibility_confirmed = True
+
         return ChannelReceipt(
             channel="datahub",
             mode="live",
@@ -222,8 +253,22 @@ class DataHubIncidentWriter:
             details={
                 "asset_urn": plan.datahub_asset_urn,
                 "incident_state": "RESOLVED",
+                "visibility_confirmed": visibility_confirmed,
             },
         )
+
+    def _wait_until_resolved(
+        self,
+        plan: PublicationPlan,
+        headers: dict[str, str],
+    ) -> dict[str, Any] | None:
+        for attempt in range(1, self.consistency_attempts + 1):
+            existing = self._find_existing(plan, headers)
+            if existing is not None and _incident_state(existing) == "RESOLVED":
+                return existing
+            if attempt < self.consistency_attempts:
+                self.sleeper(self.consistency_delay_seconds)
+        return None
 
     def _find_existing(
         self,
@@ -231,6 +276,7 @@ class DataHubIncidentWriter:
         headers: dict[str, str],
     ) -> dict[str, Any] | None:
         marker = f"[modelguard-delivery:{plan.delivery_id}]"
+        active_match: dict[str, Any] | None = None
         for state in ("ACTIVE", "RESOLVED"):
             result = self.transport(
                 _INCIDENT_QUERY,
@@ -240,21 +286,23 @@ class DataHubIncidentWriter:
             )
             data = result.get("data") if isinstance(result, dict) else None
             dataset = data.get("dataset") if isinstance(data, dict) else None
-            incident_page = (
-                dataset.get("incidents") if isinstance(dataset, dict) else None
-            )
+            incident_page = dataset.get("incidents") if isinstance(dataset, dict) else None
             incidents = (
                 incident_page.get("incidents")
                 if isinstance(incident_page, dict)
                 else []
             )
             for incident in incidents or []:
-                if (
+                if not (
                     isinstance(incident, dict)
                     and marker in str(incident.get("description") or "")
                 ):
+                    continue
+                if _incident_state(incident) == "RESOLVED":
                     return incident
-        return None
+                if active_match is None:
+                    active_match = incident
+        return active_match
 
 
 def _graphql_request(
