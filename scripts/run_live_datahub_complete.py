@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Ensure DataHub is reachable, start a local quickstart when needed, capture diagnostics, then run the complete live ModelGuard evidence workflow.
+# Ensure DataHub is reachable, start a local quickstart when needed,
+# capture diagnostics and run the live ModelGuard evidence workflow.
 """Run the complete live ModelGuard verification with resilient DataHub startup."""
 
 from __future__ import annotations
@@ -13,7 +14,6 @@ import sys
 import sysconfig
 import time
 from pathlib import Path
-from typing import Any
 from urllib import error, parse, request
 
 ROOT = Path(__file__).resolve().parents[1]
