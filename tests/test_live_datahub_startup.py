@@ -1,4 +1,5 @@
-# Test the resilient DataHub startup wrapper without contacting Docker or a live DataHub instance.
+# Test the resilient DataHub startup wrapper without contacting Docker
+# or a live DataHub instance.
 """Tests for the complete live DataHub startup wrapper."""
 
 from __future__ import annotations
