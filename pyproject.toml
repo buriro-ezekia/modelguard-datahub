@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "modelguard-datahub"
-version = "0.6.0"
+version = "0.7.0"
 description = "A DataHub-grounded production ML agent that diagnoses regressions and validates constrained repairs."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -35,6 +35,12 @@ phase2 = [
   "acryl-datahub>=1.6,<2",
   "httpx>=0.28,<1",
   "mcp>=1.24,<2",
+]
+live = [
+  "acryl-datahub>=1.6,<2",
+  "httpx>=0.28,<1",
+  "mcp>=1.24,<2",
+  "mcp-server-datahub==0.6.0",
 ]
 dev = [
   "pytest>=8.3,<9",
