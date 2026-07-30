@@ -16,6 +16,7 @@ Use **Replay the incident** or select the six terminal stages individually. The 
 2. Run:
 
 ```bash
+# Install and verify the deterministic ModelGuard environment
 source scripts/bootstrap_codespace.sh
 python scripts/run_showcase.py
 ```
@@ -42,6 +43,7 @@ Requirements:
 - no DataHub or GitHub credentials for fixture mode.
 
 ```bash
+# Clone and verify the deterministic no-credential route
 git clone https://github.com/buriro-ezekia/modelguard-datahub.git
 cd modelguard-datahub
 python -m venv .venv
@@ -55,28 +57,21 @@ python scripts/run_showcase.py
 
 ## Option D — Complete live DataHub verification
 
-This optional route proves the same context contract against a real DataHub graph. It creates a stable ML path, reads it through the SDK and the self-hosted MCP Server, verifies the model deployment link, and writes a resolved incident twice to demonstrate idempotency.
-
-Start DataHub first, then run:
+This optional route creates a stable ML metadata graph, reads it through the SDK and the self-hosted MCP Server, verifies the model deployment link, and writes a resolved incident twice to demonstrate idempotency.
 
 ```bash
-# Configure a local DataHub Core quickstart
+# Configure a local DataHub Core endpoint
 export DATAHUB_GMS_URL="http://localhost:8080"
 unset DATAHUB_GMS_TOKEN
 
-# Install the live dependencies and run all checks
-pip install -e ".[dev,live]"
-python scripts/run_live_datahub_evidence.py --promote
-```
-
-The equivalent command for an environment without the MCP server executable is:
-
-```bash
-# Install the pinned MCP server when it is missing
-python scripts/run_live_datahub_evidence.py \
+# Install live dependencies and run the resilient complete verification
+python -m pip install -e ".[dev,live]"
+python scripts/run_live_datahub_complete.py \
   --install-mcp-server \
   --promote
 ```
+
+When local GMS is offline, the wrapper starts `datahub docker quickstart --dump-logs-on-failure`, waits for readiness and then runs all SDK, MCP, ML lineage, deployment and incident checks. It never runs `datahub docker nuke`.
 
 Required ending:
 
@@ -84,7 +79,7 @@ Required ending:
 LIVE DATAHUB SDK, MCP, ML LINEAGE AND WRITE-BACK PASSED
 ```
 
-See `submission/LIVE_DATAHUB_EVIDENCE.md` for authenticated instances, managed MCP endpoints, output files and troubleshooting boundaries.
+See `submission/LIVE_DATAHUB_EVIDENCE.md` for authenticated instances, managed MCP endpoints, output files and diagnostic details.
 
 ## What fixture mode proves
 
@@ -101,6 +96,8 @@ MCP verification uses read-only tools. MCP mutation tools remain disabled. The l
 ## Troubleshooting
 
 - `modelguard: command not found`: use `python -m modelguard` or rerun `source scripts/bootstrap_codespace.sh`.
+- Port 8080 returns `Connection refused`: run the resilient wrapper shown in Option D; it starts a local quickstart when permitted.
+- DataHub quickstart fails: inspect `artifacts/live_datahub_complete/datahub_quickstart.log`, `docker_ps.log`, `datahub_docker_check.log`, `inspect_*.log`, `logs_*.log` and `startup_diagnostics.json`.
 - Expected evaluation exit code `1`: the demonstration intentionally begins with a failed F1 gate; the showcase script treats it as expected.
 - `mcp-server-datahub` missing: install `.[live]` or use `--install-mcp-server`.
 - MCP health route unavailable: inspect `artifacts/live_datahub_complete/mcp_server.log`.
