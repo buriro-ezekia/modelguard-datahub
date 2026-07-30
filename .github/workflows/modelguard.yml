@@ -97,3 +97,28 @@ jobs:
             docs/assets/screenshot-evidence.svg
             docs/assets/screenshot-mobile.svg
             submission/
+
+  live-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install live integration dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,live]"
+
+      - name: Validate live DataHub aspect contracts
+        run: pytest tests/test_live_datahub_contract.py
+
+      - name: Verify live evidence command surface
+        run: |
+          python scripts/load_live_ml_lineage.py --help
+          python scripts/run_live_datahub_evidence.py --help
