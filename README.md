@@ -213,11 +213,15 @@ The repository contains a live DataHub Core SDK snapshot in [`examples/live_data
 The live evidence harness creates a stable graph spanning raw data, feature jobs, training data, ML features, `churn-model-v3` and `churn-api-prod`. It then collects that context through both the SDK and the official self-hosted MCP Server, followed by live idempotent DataHub incident write-back.
 
 ```bash
-pip install -e ".[dev,live]"
+python -m pip install -e ".[dev,live]"
 export DATAHUB_GMS_URL="http://localhost:8080"
 unset DATAHUB_GMS_TOKEN
-python scripts/run_live_datahub_evidence.py --promote
+python scripts/run_live_datahub_complete.py \
+  --install-mcp-server \
+  --promote
 ```
+
+The resilient wrapper reuses a healthy GMS or starts a local DataHub quickstart when port 8080 is offline. The MCP provider unwraps structured tool results and preserves raw URNs for deployment verification. The DataHub writer waits until the resolved incident marker is queryable before the repeat publication, protecting the live idempotency check from search-indexing delay.
 
 The required successful ending is:
 
@@ -313,16 +317,6 @@ modelguard-datahub/
 └── tests/                   # unit, integration and regression coverage
 ```
 
-## Project status
-
-The hackathon build, hosted demonstration, public video, sample artefacts and submission documentation are complete. The repository includes tested SDK, MCP and GraphQL integration paths, committed live SDK lineage evidence, and a one-command harness for producing complete live MCP, ML-lineage and write-back evidence against DataHub Core or DataHub Cloud.
-
-Before final submission, confirm manually that GitHub Pages and the video load in a private browser window and that the repository **About** section displays the Apache-2.0 licence and hosted website URL.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling guidance.
-
 ## Licence
 
-Licensed under the [Apache License 2.0](LICENSE).
+Apache License 2.0. See [`LICENSE`](LICENSE).
