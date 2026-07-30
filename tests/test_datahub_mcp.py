@@ -1,3 +1,5 @@
+"""Tests for the DataHub MCP context provider."""
+
 from typing import Any
 
 import pytest
@@ -17,7 +19,11 @@ class FakeToolCaller:
     def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         self.calls.append((name, arguments))
         if name == "get_entities":
-            return {"urn": arguments["urns"], "type": "MLMODEL", "name": "model"}
+            return {
+                "urn": arguments["urns"],
+                "type": "MLMODEL",
+                "name": "model",
+            }
         if name == "list_schema_fields":
             return {
                 "urn": arguments["urn"],
@@ -28,13 +34,21 @@ class FakeToolCaller:
         if name == "get_lineage":
             key = "upstreams" if arguments["upstream"] else "downstreams"
             return {
-                key: [
-                    {
-                        "urn": f"urn:li:dataset:{key}",
-                        "type": "DATASET",
-                        "degree": 1,
-                    }
-                ]
+                key: {
+                    "searchResults": [
+                        {
+                            "entity": {
+                                "urn": f"urn:li:dataset:{key}",
+                                "type": "DATASET",
+                                "name": key,
+                                "platform": "snowflake",
+                            },
+                            "degree": 1,
+                        }
+                    ],
+                    "returned": 1,
+                    "hasMore": False,
+                }
             }
         raise AssertionError(name)
 
