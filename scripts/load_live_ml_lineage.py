@@ -37,12 +37,73 @@ def _field(
 
 
 def _emit(emitter: Any, wrapper_type: Any, urn: str, aspect: Any) -> dict[str, str]:
-    emitter.emit_mcp(wrapper_type(entityUrn=urn, aspect=aspect))
+    proposal = wrapper_type(entityUrn=urn, aspect=aspect)
+    emitter.emit_mcp(proposal)
     return {"urn": urn, "aspect": type(aspect).__name__}
 
 
+def _dataset_fields(models: Any) -> dict[str, list[Any]]:
+    customer_id = lambda: _field(
+        models,
+        name="customer_id",
+        native_type="VARCHAR",
+        data_type=models.StringTypeClass(),
+        description="Stable customer identifier.",
+    )
+    monthly_spend = lambda description: _field(
+        models,
+        name="monthly_spend",
+        native_type="DOUBLE",
+        data_type=models.NumberTypeClass(),
+        description=description,
+    )
+    account_age = lambda description: _field(
+        models,
+        name="account_age_months",
+        native_type="INTEGER",
+        data_type=models.NumberTypeClass(),
+        description=description,
+    )
+    return {
+        "raw_customers": [
+            customer_id(),
+            _field(
+                models,
+                name="total_spend",
+                native_type="DOUBLE",
+                data_type=models.NumberTypeClass(),
+                description="Lifetime customer spend before feature transformation.",
+            ),
+            _field(
+                models,
+                name="account_created_at",
+                native_type="TIMESTAMP",
+                data_type=models.TimeTypeClass(),
+                description="Customer account creation timestamp.",
+            ),
+        ],
+        "customer_features": [
+            customer_id(),
+            monthly_spend("Average customer spend per active account month."),
+            account_age("Completed months since account creation."),
+        ],
+        "churn_training_dataset": [
+            customer_id(),
+            monthly_spend("Model input feature derived from customer spend."),
+            account_age("Model input feature representing account tenure."),
+            _field(
+                models,
+                name="churned",
+                native_type="BOOLEAN",
+                data_type=models.BooleanTypeClass(),
+                description="Training target for customer churn.",
+            ),
+        ],
+    }
+
+
 def load_graph(*, output: Path) -> dict[str, Any]:
-    """Create the live ML graph and return a manifest of all emitted entities."""
+    """Create the live ML graph and return a manifest of emitted entities."""
 
     try:
         import datahub.emitter.mce_builder as builder
@@ -108,7 +169,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
         "feast",
         feature_table_name,
     )
-
     model_group_urn = builder.make_ml_model_group_urn(
         "mlflow",
         "modelguard-churn-models",
@@ -126,101 +186,25 @@ def load_graph(*, output: Path) -> dict[str, Any]:
     )
 
     emitted: list[dict[str, str]] = []
+    fields = _dataset_fields(models)
     datasets = (
         (
             raw_dataset_urn,
             "raw_customers",
             "Source customer records for the ModelGuard live ML lineage proof.",
-            [
-                _field(
-                    models,
-                    name="customer_id",
-                    native_type="VARCHAR",
-                    data_type=models.StringTypeClass(),
-                    description="Stable customer identifier.",
-                ),
-                _field(
-                    models,
-                    name="total_spend",
-                    native_type="DOUBLE",
-                    data_type=models.NumberTypeClass(),
-                    description="Lifetime customer spend before feature transformation.",
-                ),
-                _field(
-                    models,
-                    name="account_created_at",
-                    native_type="TIMESTAMP",
-                    data_type=models.TimeTypeClass(),
-                    description="Customer account creation timestamp.",
-                ),
-            ],
         ),
         (
             feature_dataset_urn,
             "customer_features",
             "Production customer features investigated by ModelGuard.",
-            [
-                _field(
-                    models,
-                    name="customer_id",
-                    native_type="VARCHAR",
-                    data_type=models.StringTypeClass(),
-                    description="Stable customer identifier.",
-                ),
-                _field(
-                    models,
-                    name="monthly_spend",
-                    native_type="DOUBLE",
-                    data_type=models.NumberTypeClass(),
-                    description="Average customer spend per active account month.",
-                ),
-                _field(
-                    models,
-                    name="account_age_months",
-                    native_type="INTEGER",
-                    data_type=models.NumberTypeClass(),
-                    description="Completed months since account creation.",
-                ),
-            ],
         ),
         (
             training_dataset_urn,
             "churn_training_dataset",
             "Approved training dataset for the production churn model.",
-            [
-                _field(
-                    models,
-                    name="customer_id",
-                    native_type="VARCHAR",
-                    data_type=models.StringTypeClass(),
-                    description="Stable customer identifier.",
-                ),
-                _field(
-                    models,
-                    name="monthly_spend",
-                    native_type="DOUBLE",
-                    data_type=models.NumberTypeClass(),
-                    description="Model input feature derived from customer spend.",
-                ),
-                _field(
-                    models,
-                    name="account_age_months",
-                    native_type="INTEGER",
-                    data_type=models.NumberTypeClass(),
-                    description="Model input feature representing account tenure.",
-                ),
-                _field(
-                    models,
-                    name="churned",
-                    native_type="BOOLEAN",
-                    data_type=models.BooleanTypeClass(),
-                    description="Training target for customer churn.",
-                ),
-            ],
         ),
     )
-
-    for dataset_urn, name, description, fields in datasets:
+    for dataset_urn, name, description in datasets:
         emitted.append(
             _emit(
                 emitter,
@@ -247,7 +231,7 @@ def load_graph(*, output: Path) -> dict[str, Any]:
                     version=0,
                     hash="modelguard-live-v1",
                     platformSchema=models.OtherSchemaClass(rawSchema=""),
-                    fields=fields,
+                    fields=fields[name],
                 ),
             )
         )
@@ -260,7 +244,7 @@ def load_graph(*, output: Path) -> dict[str, Any]:
                     owners=[
                         models.OwnerClass(
                             owner=OWNER_URN,
-                            type=models.OwnershipTypeClass.TECHNICAL_OWNER,
+                            type=models.OwnershipTypeClass.DATAOWNER,
                         )
                     ]
                 ),
@@ -281,7 +265,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             ),
         )
     )
-
     jobs = (
         (
             feature_job_urn,
@@ -334,7 +317,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             ),
         )
     )
-
     features = (
         (
             monthly_spend_feature_urn,
@@ -377,7 +359,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             ),
         )
     )
-
     emitted.append(
         _emit(
             emitter,
@@ -390,7 +371,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             ),
         )
     )
-
     emitted.append(
         _emit(
             emitter,
@@ -399,7 +379,7 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             models.MLModelDeploymentPropertiesClass(
                 description="Production KServe deployment for churn-model-v3.",
                 status=models.DeploymentStatusClass.IN_SERVICE,
-                version="3",
+                version=models.VersionTagClass(versionTag="3"),
                 customProperties={
                     "namespace": "modelguard",
                     "service": "churn-api-prod",
@@ -408,7 +388,6 @@ def load_graph(*, output: Path) -> dict[str, Any]:
             ),
         )
     )
-
     emitted.append(
         _emit(
             emitter,
@@ -442,7 +421,7 @@ def load_graph(*, output: Path) -> dict[str, Any]:
                 owners=[
                     models.OwnerClass(
                         owner=OWNER_URN,
-                        type=models.OwnershipTypeClass.TECHNICAL_OWNER,
+                        type=models.OwnershipTypeClass.DATAOWNER,
                     )
                 ]
             ),
@@ -479,7 +458,10 @@ def load_graph(*, output: Path) -> dict[str, Any]:
         "emitted": emitted,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return manifest
 
 
