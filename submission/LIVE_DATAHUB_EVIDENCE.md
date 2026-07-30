@@ -8,21 +8,23 @@ The public GitHub Pages demonstration remains a deterministic, read-only replay.
 
 The harness performs the following operations:
 
-1. creates three datasets with descriptions, ownership and schemas;
-2. creates two data jobs connecting raw customer data to features and training data;
-3. creates two ML features whose source is the training dataset;
-4. creates a feature table, ML model group and `churn-model-v3`;
-5. creates and links the `churn-api-prod` model deployment;
-6. collects the live training-data and model context through the DataHub Python SDK;
-7. starts the official self-hosted DataHub MCP Server over Streamable HTTP;
-8. repeats context collection through the MCP tools `get_entities`, `list_schema_fields` and `get_lineage`;
-9. raises and resolves a real DataHub incident, then repeats publication to verify `noop` idempotency; and
-10. writes a machine-readable verification summary and, when requested, copies sanitised evidence to `examples/`.
+1. confirms that the configured DataHub GMS endpoint is reachable;
+2. starts a local DataHub quickstart automatically when `localhost:8080` is offline;
+3. creates three datasets with descriptions, ownership and schemas;
+4. creates two data jobs connecting raw customer data to features and training data;
+5. creates two ML features whose source is the training dataset;
+6. creates a feature table, ML model group and `churn-model-v3`;
+7. creates and links the `churn-api-prod` model deployment;
+8. collects the live training-data and model context through the DataHub Python SDK;
+9. starts the official self-hosted DataHub MCP Server over Streamable HTTP;
+10. repeats context collection through the MCP tools `get_entities`, `list_schema_fields` and `get_lineage`;
+11. raises and resolves a real DataHub incident, then repeats publication to verify `noop` idempotency; and
+12. writes a machine-readable verification summary and, when requested, copies sanitised evidence to `examples/`.
 
 ## Prerequisites
 
 - Python 3.11 or 3.12;
-- a running DataHub Core or DataHub Cloud instance;
+- Docker and Docker Compose v2 for a local DataHub quickstart;
 - `DATAHUB_GMS_URL` pointing to GMS;
 - a service-account or personal token when the instance requires authentication; and
 - enough permission to emit metadata and manage dataset incidents.
@@ -45,26 +47,52 @@ export DATAHUB_GMS_TOKEN="scoped-service-account-token"
 
 Never commit a token. The generated evidence contains URNs, metadata and receipts but not credential values.
 
-## Run the complete verification
-
-Install the live integration dependencies once:
+## Install the live dependencies
 
 ```bash
-# Install the project, SDK, MCP client and pinned self-hosted MCP server
-pip install -e ".[dev,live]"
+# Install the project, DataHub SDK, MCP client and pinned self-hosted MCP server
+python -m pip install -e ".[dev,live]"
 ```
 
-Then run:
+## Recommended one-command verification
+
+Use the resilient wrapper. It first checks `/health` and `/config`. When the configured endpoint is local and offline, it runs `datahub docker quickstart --dump-logs-on-failure`, waits for GMS and then launches the complete evidence harness.
 
 ```bash
-# Verify SDK, MCP, ML lineage, deployment linkage and DataHub write-back
-python scripts/run_live_datahub_evidence.py --promote
+# Start local DataHub when necessary, then verify SDK, MCP, ML lineage and write-back
+python scripts/run_live_datahub_complete.py \
+  --install-mcp-server \
+  --promote
 ```
 
-When the MCP server executable is not already installed, the harness can install the pinned server package explicitly:
+The wrapper never runs `datahub docker nuke`. Existing DataHub data is therefore not deleted automatically.
+
+To require an already-running DataHub instance and prohibit automatic quickstart startup:
 
 ```bash
-# Install the pinned MCP server only when it is missing, then run all checks
+# Fail rather than starting DataHub when GMS is offline
+python scripts/run_live_datahub_complete.py \
+  --no-start-datahub \
+  --install-mcp-server \
+  --promote
+```
+
+An optional quickstart version can be selected explicitly:
+
+```bash
+# Start the latest stable DataHub quickstart before verification
+python scripts/run_live_datahub_complete.py \
+  --datahub-version stable \
+  --install-mcp-server \
+  --promote
+```
+
+## Lower-level evidence command
+
+When DataHub GMS is already healthy, the underlying evidence command can still be run directly:
+
+```bash
+# Run the evidence stages without managing DataHub startup
 python scripts/run_live_datahub_evidence.py \
   --install-mcp-server \
   --promote
@@ -84,7 +112,7 @@ A managed MCP endpoint can be used instead:
 ```bash
 # Use an existing managed or separately hosted MCP endpoint
 export DATAHUB_MCP_TOKEN="scoped-service-account-token"
-python scripts/run_live_datahub_evidence.py \
+python scripts/run_live_datahub_complete.py \
   --external-mcp \
   --mcp-url "https://tenant.example.com/integrations/ai/mcp/" \
   --promote
@@ -126,6 +154,21 @@ The complete run writes to `artifacts/live_datahub_complete/`:
 - diagnostic logs for loading, MCP startup and publication.
 
 With `--promote`, successful JSON evidence is copied to `examples/live_datahub_*.json`. Review those files before committing them.
+
+## Startup diagnostics
+
+When local DataHub cannot start or the final evidence run fails, the wrapper captures evidence rather than returning only a connection-refused message. Diagnostic files can include:
+
+- `datahub_quickstart.log`;
+- `datahub_docker_check.log`;
+- `docker_info.log`;
+- `docker_ps.log`;
+- `docker_stats.log`;
+- `inspect_*.log`;
+- `logs_*.log`; and
+- `startup_diagnostics.json`.
+
+The inspection records include container image, running state, exit code, OOM flag and health status. This distinguishes an unavailable GMS endpoint from OpenSearch startup failure, system-update failure, port conflicts and memory exhaustion.
 
 ## Safety boundaries
 
