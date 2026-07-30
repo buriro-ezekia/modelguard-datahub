@@ -21,6 +21,10 @@ The harness performs the following operations:
 11. raises and resolves a real DataHub incident, then repeats publication to verify `noop` idempotency; and
 12. writes a machine-readable verification summary and, when requested, copies sanitised evidence to `examples/`.
 
+The MCP provider preserves exact URNs from both normalised records and raw tool responses. It also unwraps FastMCP `result` envelopes and JSON-encoded structured content before normalisation. This ensures that an ML model deployment link remains verifiable even when the server response shape differs from a plain dictionary.
+
+The live DataHub writer applies an eventual-consistency barrier after resolving an incident. It waits until the resolved incident and its stable ModelGuard delivery marker are queryable before returning success, allowing the immediate repeat publication to return `noop` reliably instead of creating a duplicate.
+
 ## Prerequisites
 
 - Python 3.11 or 3.12;
@@ -175,3 +179,10 @@ The inspection records include container image, running state, exit code, OOM fl
 The MCP verification uses read-only discovery and lineage tools. MCP mutation tools are not enabled. The only catalog write-back is ModelGuard's existing GraphQL incident lifecycle operation, which is protected by the normal publication gates and requires explicit `--apply` inside the harness.
 
 The loader is idempotent: it replaces the same named metadata aspects for the same stable URNs rather than creating randomly named assets on every run.
+
+## Troubleshooting
+
+- MCP context succeeds but the deployment check fails: pull the latest branch so structured MCP `result` envelopes are unwrapped and raw deployment URNs are retained in `provider_metadata`.
+- The first incident write succeeds but the repeat is not `noop`: pull the latest branch so the writer waits for the resolved delivery marker to become queryable before returning.
+- The local MCP server does not start: inspect `mcp_server.log` and confirm that `mcp-server-datahub==0.6.0` is installed.
+- DataHub quickstart fails: inspect the startup diagnostics listed above; the wrapper does not delete existing volumes.
