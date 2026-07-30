@@ -1,3 +1,5 @@
+"""Tests for the judge-facing submission package."""
+
 from __future__ import annotations
 
 import json
@@ -20,8 +22,13 @@ def test_submission_assets_validate() -> None:
     manifest = json.loads(
         (ROOT / "artifacts/submission_manifest.json").read_text(encoding="utf-8")
     )
-    assert manifest["status"] == "ready_except_public_video_url"
-    assert manifest["manual_final_fields"] == ["public_video_url"]
+    assert manifest["status"] == "ready"
+    assert manifest["committed_live_sdk_evidence"] is True
+    assert manifest["manual_final_checks"] == [
+        "open hosted site in a private browser window",
+        "play the public video without signing in",
+        "confirm Apache-2.0 is visible in the repository About section",
+    ]
 
 
 def test_hosted_demo_has_core_verified_claims() -> None:
