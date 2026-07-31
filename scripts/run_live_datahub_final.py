@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Run the final resilient DataHub verification and prove model-deployment lineage in both graph directions.
+# Run the final resilient DataHub verification and prove model-deployment
+# lineage in both graph directions.
 """Verify live SDK, MCP, ML lineage, deployment linkage and incident write-back."""
 
 from __future__ import annotations
