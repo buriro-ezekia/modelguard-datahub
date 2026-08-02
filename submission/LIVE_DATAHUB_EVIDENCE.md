@@ -22,7 +22,7 @@ The harness performs the following operations:
 12. raises and resolves a real DataHub incident, then repeats publication to verify `noop` idempotency; and
 13. writes a machine-readable verification summary and, when requested, copies sanitised evidence to `examples/`.
 
-DataHub SDK v2 does not currently expose full entity details for every entity class. In particular, `mlModelDeployment` may raise `Entity type mlModelDeployment is not yet supported` through the SDK entity registry. ModelGuard therefore treats descriptive metadata as optional for that entity type and continues through the lineage client using the stable deployment URN. The MCP provider applies the same safe fallback when `get_entities` or `list_schema_fields` cannot describe an otherwise valid lineage entity. Connectivity or lineage failures are still fatal.
+DataHub SDK v2 does not currently expose full entity details for every entity class. In particular, `mlModelDeployment` can report `Entity type mlModelDeployment is not yet supported` through the SDK entity registry. ModelGuard therefore treats descriptive metadata as optional for this entity type and continues through the lineage client using the stable deployment URN. The MCP provider applies the same safe fallback when `get_entities` or `list_schema_fields` cannot describe an otherwise valid lineage entity. Connectivity and lineage failures remain fatal.
 
 ## Prerequisites
 
