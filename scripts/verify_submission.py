@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that the judge-facing Phase 6 submission assets are internally complete."""
+"""Verify that the judge-facing submission assets are internally complete."""
 
 from __future__ import annotations
 
@@ -20,8 +20,14 @@ REQUIRED = (
     "submission/DEMO_SCRIPT.md",
     "submission/JUDGING_GUIDE.md",
     "submission/TESTING_INSTRUCTIONS.md",
+    "submission/LIVE_DATAHUB_EVIDENCE.md",
     "submission/RELEASE_CHECKLIST.md",
     "scripts/run_showcase.py",
+    "scripts/load_live_ml_lineage.py",
+    "scripts/run_live_datahub_evidence.py",
+    "examples/live_datahub_context.json",
+    "examples/live_datahub_selection_summary.json",
+    "examples/live_datahub_verification_summary.json",
 )
 
 
@@ -58,13 +64,50 @@ def main() -> int:
     if missing_headings:
         raise SystemExit("missing Devpost sections: " + ", ".join(missing_headings))
 
+    required_links = (
+        "https://buriro-ezekia.github.io/modelguard-datahub/",
+        "https://github.com/buriro-ezekia/modelguard-datahub",
+        "https://youtu.be/S96pbK7k_nc",
+    )
+    missing_links = [link for link in required_links if link not in draft]
+    if missing_links:
+        raise SystemExit("missing final submission links: " + ", ".join(missing_links))
+
+    live_sdk = json.loads(
+        (ROOT / "examples/live_datahub_verification_summary.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if live_sdk.get("provider") != "sdk":
+        raise SystemExit("committed live DataHub evidence must use the SDK provider")
+    if int(live_sdk.get("upstream_assets", 0)) < 1:
+        raise SystemExit("committed live SDK evidence must include upstream lineage")
+    if int(live_sdk.get("downstream_assets", 0)) < 1:
+        raise SystemExit("committed live SDK evidence must include downstream lineage")
+
+    optional_complete = ROOT / "examples/live_datahub_complete_summary.json"
+    complete_live_evidence = optional_complete.is_file()
+    if complete_live_evidence:
+        summary = json.loads(optional_complete.read_text(encoding="utf-8"))
+        checks = summary.get("checks") or {}
+        failed = [name for name, passed in checks.items() if passed is not True]
+        if summary.get("status") != "complete" or failed:
+            raise SystemExit(
+                "promoted live DataHub evidence is incomplete: " + ", ".join(failed)
+            )
+
     manifest = {
-        "status": "ready_except_public_video_url",
+        "status": "ready",
         "required_assets": len(REQUIRED),
-        "hosted_site_expected_url": (
-            "https://buriro-ezekia.github.io/modelguard-datahub/"
-        ),
-        "manual_final_fields": ["public_video_url"],
+        "hosted_site_url": "https://buriro-ezekia.github.io/modelguard-datahub/",
+        "public_video_url": "https://youtu.be/S96pbK7k_nc",
+        "committed_live_sdk_evidence": True,
+        "complete_live_sdk_mcp_ml_evidence": complete_live_evidence,
+        "manual_final_checks": [
+            "open hosted site in a private browser window",
+            "play the public video without signing in",
+            "confirm Apache-2.0 is visible in the repository About section",
+        ],
     }
     output = ROOT / "artifacts/submission_manifest.json"
     output.parent.mkdir(parents=True, exist_ok=True)

@@ -31,11 +31,13 @@ The repair layer uses Python AST analysis for the demonstrated guarded-division 
 
 The publication layer uses hidden delivery markers and stable identifiers to make GitHub comments and DataHub incident write-back idempotent. The hosted demo is a dependency-free static site deployed through GitHub Pages. GitHub Actions verifies linting, tests, the full six-phase showcase and submission assets.
 
+For live verification, the repository includes an idempotent loader that creates raw, feature and training datasets, pipeline jobs, ML features, a feature table, `churn-model-v3` and the `churn-api-prod` deployment. A separate harness reads the graph through both the SDK and the official self-hosted MCP Server, verifies the model-to-deployment link and exercises live incident write-back twice to prove idempotency.
+
 ## Challenges we ran into
 
 The hardest problem was deciding where agent reasoning should stop and deterministic control should begin. A plausible explanation is not enough to author code, and a passing unit test is not enough to claim a model repair. We separated diagnosis, generation, validation and publication into independent gates with distinct artefacts and exit statuses.
 
-A second challenge was normalising DataHub context across SDK, MCP and fixture providers without losing provenance. The solution was a provider-neutral context snapshot whose evidence retains source attribution.
+A second challenge was normalising DataHub context across SDK, MCP and fixture providers without losing provenance. The solution was a provider-neutral context snapshot whose evidence retains source attribution. Live testing also exposed two real integration details: SDK entities may expose metadata through slots or properties rather than dictionaries, and the MCP lineage tool returns nested `searchResults`. ModelGuard now handles both forms.
 
 The third challenge was safe write-back. CI reruns should not create duplicate pull-request comments or incidents. Stable delivery markers and explicit publication permission made the outcome predictable and auditable.
 
@@ -49,18 +51,22 @@ The third challenge was safe write-back. CI reruns should not create duplicate p
 - F1 recovery from 0.771 to 0.842 with zero invalid transformed values.
 - Idempotent GitHub and DataHub publication.
 - One-command showcase, hosted demo, screenshots and sample outputs.
+- Verified live DataHub Core SDK connectivity and bidirectional lineage retrieval.
+- A complete, reproducible SDK + MCP + ML-lineage + live-write-back verification harness.
 
 ## What we learned
 
 Agents become more useful when context and authority are treated as separate concerns. DataHub gives ModelGuard the context to understand which assets, fields and deployments matter. Deterministic policies decide whether the agent may diagnose, repair, validate or publish. Counter-evidence is also essential: unchanged zero-value source rows reduced confidence in the source-data explanation because the harmful behaviour began only after the transformation changed.
 
+We also learned that a strong agent integration needs two forms of proof. Deterministic fixtures make the complete failure-and-repair scenario reproducible for every judge, while live SDK and MCP verification demonstrates that the same context contract works against a real DataHub graph.
+
 ## What's next
 
 - Add constrained repair strategies for schema compatibility, null handling and feature drift.
-- Validate against a live open-source DataHub quickstart in a public integration environment.
 - Add signed provenance for generated patches and publication receipts.
 - Publish a reusable DataHub Skill for the ModelGuard investigation workflow.
 - Support policy-as-code approval rules for organisation-specific ML risk tiers.
+- Extend live verification to column-level feature lineage and governed metadata proposals.
 
 ## Built with
 

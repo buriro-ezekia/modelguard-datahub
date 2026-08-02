@@ -235,6 +235,52 @@ def test_live_datahub_writer_raises_and_resolves_incident() -> None:
     assert "datahub-secret" not in json.dumps(receipt.to_dict())
 
 
+def test_live_datahub_writer_waits_until_resolved_incident_is_queryable() -> None:
+    plan = build_publication_plan(_inputs())
+    marker = f"[modelguard-delivery:{plan.delivery_id}]"
+    state = {"resolved": False, "resolved_queries": 0}
+
+    def transport(
+        query: str,
+        variables: dict[str, Any],
+        url: str,
+        headers: dict[str, str],
+    ) -> dict[str, Any]:
+        if "ModelGuardIncidents" in query:
+            incidents: list[dict[str, Any]] = []
+            if state["resolved"] and variables.get("state") == "RESOLVED":
+                state["resolved_queries"] += 1
+                if state["resolved_queries"] >= 2:
+                    incidents = [
+                        {
+                            "urn": "urn:li:incident:eventually-visible",
+                            "description": marker,
+                            "status": {"state": "RESOLVED"},
+                        }
+                    ]
+            return {"data": {"dataset": {"incidents": {"incidents": incidents}}}}
+        if "RaiseModelGuardIncident" in query:
+            return {"data": {"raiseIncident": "urn:li:incident:eventually-visible"}}
+        state["resolved"] = True
+        return {"data": {"updateIncidentStatus": True}}
+
+    receipt = DataHubIncidentWriter(
+        mode="live",
+        graphql_url="https://datahub.example/api/graphql",
+        token="token",
+        transport=transport,
+        confirm_visibility=True,
+        consistency_attempts=3,
+        consistency_delay_seconds=0,
+        sleeper=lambda _seconds: None,
+    ).publish(plan, apply=True)
+
+    assert receipt.status == "published"
+    assert receipt.action == "raised_and_resolved"
+    assert receipt.details["visibility_confirmed"] is True
+    assert state["resolved_queries"] == 2
+
+
 def test_live_datahub_writer_noops_for_resolved_delivery() -> None:
     plan = build_publication_plan(_inputs())
     marker = f"[modelguard-delivery:{plan.delivery_id}]"

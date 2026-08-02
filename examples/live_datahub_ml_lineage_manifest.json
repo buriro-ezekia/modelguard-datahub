@@ -1,0 +1,118 @@
+{
+  "account_age_feature_urn": "urn:li:mlFeature:(modelguard_customer_features,account_age_months)",
+  "deployment_urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)",
+  "emitted": [
+    {
+      "aspect": "DatasetPropertiesClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "aspect": "SchemaMetadataClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "aspect": "OwnershipClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "aspect": "DatasetPropertiesClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "aspect": "SchemaMetadataClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "aspect": "OwnershipClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "aspect": "DatasetPropertiesClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+    },
+    {
+      "aspect": "SchemaMetadataClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+    },
+    {
+      "aspect": "OwnershipClass",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+    },
+    {
+      "aspect": "DataFlowInfoClass",
+      "urn": "urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod)"
+    },
+    {
+      "aspect": "DataJobInfoClass",
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)"
+    },
+    {
+      "aspect": "DataJobInputOutputClass",
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)"
+    },
+    {
+      "aspect": "DataJobInfoClass",
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+    },
+    {
+      "aspect": "DataJobInputOutputClass",
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+    },
+    {
+      "aspect": "MLPrimaryKeyPropertiesClass",
+      "urn": "urn:li:mlPrimaryKey:(modelguard_customer_features,customer_id)"
+    },
+    {
+      "aspect": "MLFeaturePropertiesClass",
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)"
+    },
+    {
+      "aspect": "MLFeaturePropertiesClass",
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,account_age_months)"
+    },
+    {
+      "aspect": "MLFeatureTablePropertiesClass",
+      "urn": "urn:li:mlFeatureTable:(urn:li:dataPlatform:feast,modelguard_customer_features)"
+    },
+    {
+      "aspect": "MLModelGroupPropertiesClass",
+      "urn": "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    },
+    {
+      "aspect": "MLModelDeploymentPropertiesClass",
+      "urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)"
+    },
+    {
+      "aspect": "MLModelPropertiesClass",
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    },
+    {
+      "aspect": "OwnershipClass",
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    }
+  ],
+  "expected_path": [
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+    "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+    "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)",
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+    "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)",
+    "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+    "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)"
+  ],
+  "feature_dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+  "feature_job_urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+  "feature_table_urn": "urn:li:mlFeatureTable:(urn:li:dataPlatform:feast,modelguard_customer_features)",
+  "flow_urn": "urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod)",
+  "generated_at_epoch_ms": 1785654605953,
+  "gms_url": "http://localhost:8080",
+  "model_group_urn": "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+  "model_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "monthly_spend_feature_urn": "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)",
+  "primary_key_urn": "urn:li:mlPrimaryKey:(modelguard_customer_features,customer_id)",
+  "raw_dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+  "status": "loaded",
+  "training_dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+  "training_job_urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+}

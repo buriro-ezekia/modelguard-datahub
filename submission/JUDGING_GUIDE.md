@@ -13,6 +13,18 @@ ModelGuard is a DataHub-grounded production ML agent. A pull-request change intr
 
 The one-command showcase uses deterministic fixtures and requires no credentials.
 
+## Strongest live-integration path
+
+A configured DataHub instance can run:
+
+```bash
+pip install -e ".[dev,live]"
+export DATAHUB_GMS_URL="http://localhost:8080"
+python scripts/run_live_datahub_evidence.py --promote
+```
+
+This creates a real ML graph, collects it through both the DataHub SDK and MCP Server, verifies the model deployment link, raises and resolves a live DataHub incident, and repeats publication to prove `noop` idempotency. Full instructions are in `submission/LIVE_DATAHUB_EVIDENCE.md`.
+
 ## What to inspect by judging criterion
 
 ### 1. Use of DataHub
@@ -22,12 +34,17 @@ The one-command showcase uses deterministic fixtures and requires no credentials
 - ML path represented from raw customers through features and training data to the model and deployment.
 - Root-cause scores explicitly include lineage relevance and schema evidence.
 - The resolved outcome is written back as an idempotent DataHub incident lifecycle record.
+- Committed live SDK lineage evidence plus a reproducible complete SDK/MCP/ML/write-back harness.
 
 Key files:
 
 - `src/modelguard/context/datahub_sdk.py`
 - `src/modelguard/context/datahub_mcp.py`
+- `src/modelguard/context/normalise.py`
 - `src/modelguard/reporting/datahub_writer.py`
+- `scripts/load_live_ml_lineage.py`
+- `scripts/run_live_datahub_evidence.py`
+- `examples/live_datahub_context.json`
 - `examples/datahub_incident.json`
 
 ### 2. Technical execution
@@ -40,6 +57,7 @@ Key files:
 - Temporary-workspace validation, no shell execution and source hash verification.
 - Idempotent GitHub and DataHub publication.
 - CI exercises the complete flow and verifies the second publication is `noop`.
+- Official MCP nested lineage responses and SDK slot/property objects are normalised into the same stable contract.
 
 ### 3. Originality
 
@@ -52,14 +70,15 @@ The target user is an ML platform or data platform team reviewing a change that 
 ### 5. Submission quality
 
 - Hosted interactive demonstration under `docs/`.
-- One-command showcase.
+- One-command deterministic showcase.
+- One-command live SDK/MCP/ML verification.
 - Three prepared screenshots.
 - Public Apache-2.0 repository.
 - Sample outputs for every stage.
-- Under-three-minute video script and shot list.
+- Public demonstration video under three minutes.
 - Explicit testing and safety instructions.
 
-## Verified demonstration outcome
+## Verified deterministic outcome
 
 ```text
 Regression: f1_score 0.842 -> 0.771
@@ -72,6 +91,14 @@ GitHub first/repeat: created / noop
 DataHub first/repeat: raised_and_resolved / noop
 ```
 
+## Evidence labels
+
+To avoid overstating the submission, ModelGuard separates three evidence levels:
+
+1. **Deterministic verified showcase** — complete ML regression, diagnosis, repair, validation and fixture publication.
+2. **Committed live SDK evidence** — actual DataHub Core connection and bidirectional dataset/data-job lineage.
+3. **Complete live evidence** — promoted only after the SDK, MCP, ML lineage, deployment-link and live write-back harness reports every check as `true`.
+
 ## Safety boundary
 
-The public hosted site is a read-only interactive replay of verified fixture artefacts. ModelGuard never applies or merges its own repair. Live GitHub and DataHub writes require explicit `--apply` and scoped environment credentials.
+The public hosted site is a read-only interactive replay of verified fixture artefacts. ModelGuard never applies or merges its own repair. MCP mutation tools are disabled in the live harness. Live GitHub and DataHub writes require explicit permission and scoped environment credentials where authentication is enabled.

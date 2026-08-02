@@ -1,0 +1,91 @@
+{
+  "authoritative_verification": {
+    "provider": "sdk",
+    "relationship": "MLModelProperties.deployments",
+    "verified": true
+  },
+  "deployment_urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)",
+  "mcp": {
+    "model_downstream_contains_deployment": false,
+    "model_downstream_observed_urns": [
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    ],
+    "model_entity_contains_deployment": false,
+    "model_entity_observed_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataPlatform:mlflow",
+      "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "provider_metadata_contains_deployment": false,
+    "provider_metadata_observed_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+      "urn:li:dataPlatform:airflow",
+      "urn:li:dataPlatform:mlflow",
+      "urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "urn:li:dataPlatform:snowflake",
+      "urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:mlFeature:(modelguard_customer_features,account_age_months)",
+      "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)",
+      "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "verification_sources": [],
+    "verified": false
+  },
+  "mcp_model_context": {
+    "downstream_urns": [
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    ],
+    "model_urn_observed": true,
+    "provider_matches": true,
+    "source_urn_matches": true,
+    "upstream_urns": [
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:mlFeature:(modelguard_customer_features,account_age_months)",
+      "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)"
+    ],
+    "verified": true
+  },
+  "mcp_relationship_observation": {
+    "exposed": false,
+    "reason": "DataHub MCP get_lineage exposes lineage edges. The model-to-deployment association is a named aspect relationship and was not exposed by MCP Server 0.6.0 in this DataHub Core 1.5 run.",
+    "required_for_pass": false
+  },
+  "model_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "note": "Direct mlModelDeployment entity retrieval is not required; the relationship is verified from model-side metadata or model-side downstream context.",
+  "relationship": "MLModelProperties.deployments",
+  "sdk": {
+    "model_downstream_contains_deployment": false,
+    "model_downstream_observed_urns": [
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    ],
+    "model_entity_contains_deployment": true,
+    "model_entity_observed_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)",
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "{'entity_type': 'mlModel', 'name': 'churn-model-v3', 'platform': 'urn:li:dataPlatform:mlflow'}"
+    ],
+    "provider_metadata_contains_deployment": false,
+    "provider_metadata_observed_urns": [],
+    "verification_sources": [
+      "model_entity_metadata"
+    ],
+    "verified": true
+  }
+}

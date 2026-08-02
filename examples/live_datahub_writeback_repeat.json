@@ -1,0 +1,41 @@
+{
+  "applied": true,
+  "channels": [
+    {
+      "action": "disabled",
+      "channel": "github",
+      "details": {},
+      "external_id": null,
+      "mode": "off",
+      "status": "skipped",
+      "url": null
+    },
+    {
+      "action": "noop",
+      "channel": "datahub",
+      "details": {
+        "asset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+        "incident_state": "RESOLVED",
+        "visibility_confirmed": true
+      },
+      "external_id": "urn:li:incident:cc6d5f23-b689-44d3-af78-2b714d988d85",
+      "mode": "live",
+      "status": "noop",
+      "url": null
+    }
+  ],
+  "delivery_id": "delivery-43a1891cc0d4",
+  "plan": {
+    "datahub_asset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+    "datahub_incident_description": "[modelguard-delivery:delivery-43a1891cc0d4]\nPull request: https://github.com/buriro-ezekia/modelguard-datahub/pull/12\nDiagnosis: Changed feature transformation introduced invalid values\nConfidence: high (1.0000)\nBefore repair: 0.771\nAfter repair: 0.842\nValidation: validation-fff0b9f0b068\nRepair: repair-d359e2c30c02",
+    "datahub_incident_title": "ModelGuard repaired f1_score regression",
+    "datahub_resolution_message": "Validated repair repair-d359e2c30c02 restored f1_score from 0.771 to 0.842; validation validation-fff0b9f0b068. Source workspace unchanged.",
+    "delivery_id": "delivery-43a1891cc0d4",
+    "github_comment": "<!-- modelguard:delivery:delivery-43a1891cc0d4 -->\n## \u2705 ModelGuard validated repair\n\n**Delivery:** `delivery-43a1891cc0d4`  \n**Root cause:** Changed feature transformation introduced invalid values  \n**Confidence:** `high` (`1.0000`)  \n**Affected asset:** `urn:li:dataset:(urn:li:dataPlatform:dbt,analytics.customer_features,PROD)`  \n**Affected fields:** `account_age_months`, `monthly_spend`, `total_spend`\n\n| Check | Result |\n|---|---:|\n| `f1_score` before repair | `0.771` |\n| `f1_score` after repair | `0.842` |\n| Invalid values after repair | `0` |\n| Validation commands passed | `3/3` |\n| Source workspace unchanged | `True` |\n\n**Repair strategy:** `guarded_division`  \n**Repair ID:** `repair-d359e2c30c02`  \n**Validation ID:** `validation-fff0b9f0b068`\n\n<details>\n<summary>Validated patch</summary>\n\n```diff\n--- a/src/features/customer_features.py\n+++ b/src/features/customer_features.py\n@@ -3,4 +3,6 @@\n \n def calculate_monthly_spend(total_spend: float, account_age_months: int) -> float:\n     \"\"\"Return average spend per active account month.\"\"\"\n+    if account_age_months <= 0:\n+        return 0.0\n     return total_spend / account_age_months\n```\n\n</details>\n\nReview this validated patch in https://github.com/buriro-ezekia/modelguard-datahub/pull/12. ModelGuard did not apply or merge it.\n",
+    "marker": "<!-- modelguard:delivery:delivery-43a1891cc0d4 -->",
+    "pull_request": 12,
+    "repository": "buriro-ezekia/modelguard-datahub"
+  },
+  "status": "published",
+  "warnings": []
+}

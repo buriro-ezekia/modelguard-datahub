@@ -1,0 +1,52 @@
+{
+  "checks": {
+    "datahub_model_deployment_link_verified": true,
+    "live_datahub_writeback_idempotent": true,
+    "live_datahub_writeback_verified": true,
+    "mcp_ml_lineage_verified": true,
+    "mcp_model_context_verified": true,
+    "mcp_provider_verified": true,
+    "sdk_ml_lineage_verified": true,
+    "sdk_model_deployment_link_verified": true,
+    "sdk_provider_verified": true
+  },
+  "datahub_gms_url": "http://localhost:8080",
+  "datahub_writeback": {
+    "first_action": "noop",
+    "incident_urn": "urn:li:incident:cc6d5f23-b689-44d3-af78-2b714d988d85",
+    "repeat_action": "noop"
+  },
+  "deployment_urn": "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)",
+  "mcp_capability_scope": {
+    "not_claimed": [
+      "MCP exposure of the MLModelProperties.deployments relationship on DataHub Core 1.5 with MCP Server 0.6.0"
+    ],
+    "verified": [
+      "MCP connection",
+      "training-data context",
+      "model context",
+      "upstream and downstream ML lineage"
+    ]
+  },
+  "mcp_server_version": "0.6.0",
+  "mcp_training_context": {
+    "downstream_assets": 5,
+    "schema_fields": 4,
+    "upstream_assets": 4
+  },
+  "mcp_url": "http://127.0.0.1:8000/mcp",
+  "model_deployment_relationship": {
+    "mcp_model_context_verified": true,
+    "mcp_relationship_exposed": false,
+    "relationship": "MLModelProperties.deployments",
+    "verified_by": "DataHub SDK model metadata"
+  },
+  "model_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "sdk_training_context": {
+    "downstream_assets": 5,
+    "schema_fields": 0,
+    "upstream_assets": 4
+  },
+  "status": "complete",
+  "training_dataset_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+}

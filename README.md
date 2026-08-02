@@ -17,6 +17,7 @@ ModelGuard never merges its own repair. It produces a review-ready result while 
 | Sample generated artefacts | [Inspect `examples/`](examples/) |
 | Fast judging guide | [Read the judging guide](submission/JUDGING_GUIDE.md) |
 | Reproduction instructions | [Read the testing instructions](submission/TESTING_INSTRUCTIONS.md) |
+| Live DataHub verification | [Run SDK, MCP, ML lineage and write-back checks](submission/LIVE_DATAHUB_EVIDENCE.md) |
 | Challenge category | **Production ML Agents** |
 
 ![ModelGuard hosted demonstration](docs/assets/screenshot-overview.svg)
@@ -167,7 +168,7 @@ The proposal changes two lines in one cited function. ModelGuard validates it in
 - Repairs are tested in a temporary workspace.
 - The original workspace must remain hash-identical.
 - The original metric policy must pass after repair.
-- Publication remains a dry run unless `--apply` is explicit.
+- Publication remains a dry run unless `--apply` is supplied.
 - Credentials come from environment variables and never enter receipts.
 - Stable markers make GitHub and DataHub publication idempotent.
 - ModelGuard never merges its own repair.
@@ -202,6 +203,33 @@ The showcase requires no credentials and writes only to `artifacts/showcase/`.
 ## Live DataHub integration
 
 Fixture mode makes judging reproducible, while the same provider interface supports real DataHub environments.
+
+### Committed live SDK evidence
+
+The repository contains a live DataHub Core SDK snapshot in [`examples/live_datahub_context.json`](examples/live_datahub_context.json). It records a real S3 dataset, one upstream data job and two downstream entities collected from a running DataHub instance. This proves live SDK connectivity and bidirectional lineage retrieval; it is separate from the deterministic ML-specific showcase.
+
+### Complete live SDK, MCP and ML lineage verification
+
+The live evidence harness creates a stable graph spanning raw data, feature jobs, training data, ML features, `churn-model-v3` and `churn-api-prod`. It then collects that context through both the SDK and the official self-hosted MCP Server, followed by live idempotent DataHub incident write-back.
+
+```bash
+python -m pip install -e ".[dev,live]"
+export DATAHUB_GMS_URL="http://localhost:8080"
+unset DATAHUB_GMS_TOKEN
+python scripts/run_live_datahub_complete.py \
+  --install-mcp-server \
+  --promote
+```
+
+The resilient wrapper reuses a healthy GMS or starts a local DataHub quickstart when port 8080 is offline. The MCP provider unwraps structured tool results and preserves raw URNs for deployment verification. The DataHub writer waits until the resolved incident marker is queryable before the repeat publication, protecting the live idempotency check from search-indexing delay.
+
+The required successful ending is:
+
+```text
+LIVE DATAHUB SDK, MCP, ML LINEAGE AND WRITE-BACK PASSED
+```
+
+See [`submission/LIVE_DATAHUB_EVIDENCE.md`](submission/LIVE_DATAHUB_EVIDENCE.md) for authenticated environments, managed MCP endpoints, generated artefacts and safety notes.
 
 ### DataHub Python SDK
 
@@ -244,7 +272,7 @@ Live context and publication remain opt-in. Use the smallest practical service-a
 
 ## Generated artefacts
 
-The showcase writes:
+The deterministic showcase writes:
 
 - `evaluation.json`;
 - `context_snapshot.json`;
@@ -252,6 +280,8 @@ The showcase writes:
 - `repair_plan.json`, `repair_validation.json` and `validated_patch.diff`;
 - `publication_receipt.json`, `github_pr_comment.md` and fixture state files; and
 - `showcase_summary.json`.
+
+The optional live verification writes SDK, MCP, ML-lineage and write-back evidence under `artifacts/live_datahub_complete/` and can promote successful sanitised JSON to `examples/`.
 
 Run the submission verifier with:
 
@@ -265,9 +295,10 @@ ModelGuard is a focused hackathon implementation rather than a general autonomou
 
 - The current repair catalogue contains one explicit strategy: `guarded_division`.
 - The public website is an interactive replay, not a browser-based live DataHub client.
-- The reproducible showcase uses deterministic DataHub-shaped fixtures; live SDK and MCP access require a configured DataHub environment.
+- The reproducible public showcase uses deterministic DataHub-shaped fixtures so judging needs no external service.
+- Live SDK evidence is committed; complete MCP, ML-lineage and live write-back evidence must be produced against a configured DataHub instance with the supplied harness.
 - Evidence extraction, candidate generation and ranking are deterministic, so the public evaluation needs no external model API.
-- Live GitHub and DataHub writes require explicit permission and scoped credentials.
+- Live GitHub and DataHub writes require explicit permission and scoped credentials where authentication is enabled.
 
 These limits are deliberate. They make the demonstrated claims reproducible and keep repair authority narrower than diagnostic context.
 
@@ -280,22 +311,12 @@ modelguard-datahub/
 ├── demo/                    # broken transformation and expected repair
 ├── docs/                    # hosted interactive demonstration
 ├── examples/                # verified outputs for every phase
-├── scripts/                 # Codespaces bootstrap and showcase tools
+├── scripts/                 # Codespaces bootstrap, showcase and live verification
 ├── src/modelguard/          # detection, context, diagnosis, repair and reporting
 ├── submission/              # judging, Devpost and video materials
 └── tests/                   # unit, integration and regression coverage
 ```
 
-## Project status
-
-The hackathon build, hosted demonstration, public video, sample artefacts and submission documentation are complete. The repository includes live DataHub SDK, MCP and GraphQL integration paths, while the no-credential judging route remains deterministic and reproducible.
-
-Before final submission, confirm manually that GitHub Pages loads in a private browser window and that the repository **About** section displays the Apache-2.0 licence and hosted website URL.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for vulnerability reporting and secret-handling guidance.
-
 ## Licence
 
-Licensed under the [Apache License 2.0](LICENSE).
+Apache License 2.0. See [`LICENSE`](LICENSE).

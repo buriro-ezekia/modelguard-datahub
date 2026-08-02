@@ -4,17 +4,28 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any, Protocol
 
 from modelguard.context.base import DataHubContextError
 from modelguard.context.normalise import (
     normalise_entity,
     normalise_lineage_results,
+    to_primitive,
     utc_now_iso,
 )
 from modelguard.models import ContextSnapshot, LineageDirection
 
 _REQUIRED_TOOLS = {"get_entities", "list_schema_fields", "get_lineage"}
+_URN_START = re.compile(r"urn:li:[A-Za-z0-9_]+:")
+_OPTIONAL_METADATA_ERROR_MARKERS = (
+    "not yet supported",
+    "unsupported entity type",
+    "entity type is not supported",
+    "does not have a schema",
+    "schema is not supported",
+    "not a dataset",
+)
 
 
 class McpToolCaller(Protocol):
@@ -152,45 +163,77 @@ class DataHubMcpContextProvider:
         max_results: int,
         schema_limit: int,
     ) -> ContextSnapshot:
+        warnings: list[str] = []
+        entity_payload: Any = {"urn": source_urn}
+        schema_payload: Any = {}
+
         try:
-            entity_payload = self.tool_caller.call_tool(
-                "get_entities", {"urns": source_urn}
+            entity_payload = _unwrap_tool_payload(
+                self.tool_caller.call_tool("get_entities", {"urns": source_urn})
             )
-            schema_payload = self.tool_caller.call_tool(
-                "list_schema_fields",
-                {"urn": source_urn, "limit": schema_limit, "offset": 0},
+        except Exception as exc:
+            if not _is_optional_metadata_error(exc):
+                raise DataHubContextError(
+                    f"DataHub MCP entity retrieval failed: {exc}"
+                ) from exc
+            warnings.append(
+                "Entity details are unavailable for this type through get_entities; "
+                f"lineage was collected using the source URN ({exc})."
             )
+
+        try:
+            schema_payload = _unwrap_tool_payload(
+                self.tool_caller.call_tool(
+                    "list_schema_fields",
+                    {"urn": source_urn, "limit": schema_limit, "offset": 0},
+                )
+            )
+        except Exception as exc:
+            if not _is_optional_metadata_error(exc):
+                raise DataHubContextError(
+                    f"DataHub MCP schema retrieval failed: {exc}"
+                ) from exc
+            warnings.append(
+                "Schema metadata is unavailable or not applicable for this entity type "
+                f"({exc})."
+            )
+
+        try:
             upstream_payload: Any = []
             downstream_payload: Any = []
             if direction in {"upstream", "both"}:
-                upstream_payload = self.tool_caller.call_tool(
-                    "get_lineage",
-                    {
-                        "urn": source_urn,
-                        "column": source_column,
-                        "upstream": True,
-                        "max_hops": max_hops,
-                        "max_results": max_results,
-                        "offset": 0,
-                    },
+                upstream_payload = _unwrap_tool_payload(
+                    self.tool_caller.call_tool(
+                        "get_lineage",
+                        {
+                            "urn": source_urn,
+                            "column": source_column,
+                            "upstream": True,
+                            "max_hops": max_hops,
+                            "max_results": max_results,
+                            "offset": 0,
+                        },
+                    )
                 )
             if direction in {"downstream", "both"}:
-                downstream_payload = self.tool_caller.call_tool(
-                    "get_lineage",
-                    {
-                        "urn": source_urn,
-                        "column": source_column,
-                        "upstream": False,
-                        "max_hops": max_hops,
-                        "max_results": max_results,
-                        "offset": 0,
-                    },
+                downstream_payload = _unwrap_tool_payload(
+                    self.tool_caller.call_tool(
+                        "get_lineage",
+                        {
+                            "urn": source_urn,
+                            "column": source_column,
+                            "upstream": False,
+                            "max_hops": max_hops,
+                            "max_results": max_results,
+                            "offset": 0,
+                        },
+                    )
                 )
         except Exception as exc:
             if isinstance(exc, DataHubContextError):
                 raise
             raise DataHubContextError(
-                f"DataHub MCP context retrieval failed: {exc}"
+                f"DataHub MCP lineage retrieval failed: {exc}"
             ) from exc
 
         return ContextSnapshot(
@@ -208,6 +251,13 @@ class DataHubMcpContextProvider:
                 "tools": sorted(_REQUIRED_TOOLS),
                 "schema_limit": schema_limit,
                 "max_results": max_results,
+                "warnings": warnings,
+                "entity_details_available": not any(
+                    "get_entities" in warning for warning in warnings
+                ),
+                "entity_urns": sorted(_extract_urns(entity_payload)),
+                "upstream_urns": sorted(_extract_urns(upstream_payload)),
+                "downstream_urns": sorted(_extract_urns(downstream_payload)),
             },
         )
 
@@ -221,11 +271,11 @@ def _decode_tool_result(result: Any) -> Any:
     if structured is None:
         structured = getattr(result, "structured_content", None)
     if structured is not None:
-        return structured
+        return _unwrap_tool_payload(structured)
 
     data = getattr(result, "data", None)
     if data is not None:
-        return data
+        return _unwrap_tool_payload(data)
 
     text_values: list[str] = []
     for block in getattr(result, "content", []) or []:
@@ -235,8 +285,82 @@ def _decode_tool_result(result: Any) -> Any:
     if not text_values:
         return {}
     if len(text_values) == 1:
-        try:
-            return json.loads(text_values[0])
-        except json.JSONDecodeError:
-            return text_values[0]
-    return text_values
+        return _unwrap_tool_payload(text_values[0])
+    return [_unwrap_tool_payload(item) for item in text_values]
+
+
+def _unwrap_tool_payload(value: Any) -> Any:
+    """Unwrap FastMCP result envelopes and JSON-encoded tool payloads."""
+
+    current = value
+    for _ in range(4):
+        if isinstance(current, str):
+            stripped = current.strip()
+            if stripped.startswith(("{", "[")):
+                try:
+                    current = json.loads(stripped)
+                    continue
+                except json.JSONDecodeError:
+                    return current
+            return current
+        if isinstance(current, dict) and set(current) == {"result"}:
+            current = current["result"]
+            continue
+        return current
+    return current
+
+
+def _extract_urns(value: Any) -> set[str]:
+    """Extract exact DataHub URNs from nested or string-encoded MCP responses."""
+
+    primitive = _unwrap_tool_payload(to_primitive(value))
+    urns: set[str] = set()
+
+    def visit(item: Any) -> None:
+        item = _unwrap_tool_payload(item)
+        if isinstance(item, dict):
+            for key, nested in item.items():
+                if str(key).lower().endswith("urn") and isinstance(nested, str):
+                    urns.update(_urns_in_text(nested))
+                visit(nested)
+            return
+        if isinstance(item, (list, tuple, set)):
+            for nested in item:
+                visit(nested)
+            return
+        if isinstance(item, str):
+            urns.update(_urns_in_text(item))
+
+    visit(primitive)
+    return urns
+
+
+def _urns_in_text(text: str) -> set[str]:
+    output: set[str] = set()
+    for match in _URN_START.finditer(text):
+        start = match.start()
+        cursor = match.end()
+        if cursor < len(text) and text[cursor] == "(":
+            depth = 0
+            while cursor < len(text):
+                character = text[cursor]
+                if character == "(":
+                    depth += 1
+                elif character == ")":
+                    depth -= 1
+                    if depth == 0:
+                        cursor += 1
+                        break
+                cursor += 1
+        else:
+            while cursor < len(text) and text[cursor] not in "\t\r\n \"'<>[]{}":
+                cursor += 1
+        candidate = text[start:cursor].rstrip(",.;")
+        if candidate.startswith("urn:li:"):
+            output.add(candidate)
+    return output
+
+
+def _is_optional_metadata_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(marker in message for marker in _OPTIONAL_METADATA_ERROR_MARKERS)
