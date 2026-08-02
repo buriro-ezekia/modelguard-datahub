@@ -1,0 +1,294 @@
+{
+  "downstream": [
+    {
+      "description": "Production churn model used by the ModelGuard regression scenario.",
+      "direction": "downstream",
+      "entity_type": "MLMODEL",
+      "hops": 2,
+      "name": "churn-model-v3",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:mlflow', 'name': 'mlflow'}",
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    },
+    {
+      "description": "Completed account age in months used by the churn model.",
+      "direction": "downstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": "account_age_months",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,account_age_months)"
+    },
+    {
+      "description": "Average monthly spend used by the churn model.",
+      "direction": "downstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": "monthly_spend",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)"
+    },
+    {
+      "description": "Versioned production churn models protected by ModelGuard.",
+      "direction": "downstream",
+      "entity_type": "MLMODEL_GROUP",
+      "hops": 3,
+      "name": "modelguard-churn-models",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:mlflow', 'name': 'mlflow'}",
+      "urn": "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLPRIMARY_KEY",
+      "hops": 1,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlPrimaryKey:(modelguard_customer_features,customer_id)"
+    }
+  ],
+  "entity": {
+    "description": "Approved training dataset for the production churn model.",
+    "entity_type": "DATASET",
+    "glossary_terms": [],
+    "name": "churn_training_dataset",
+    "owners": [],
+    "platform": "snowflake",
+    "quality_signals": [],
+    "raw": {
+      "entityType": "DATASET",
+      "health": [
+        {
+          "status": "PASS",
+          "type": "INCIDENTS"
+        }
+      ],
+      "name": "churn_training_dataset",
+      "ownership": {
+        "owners": [
+          {
+            "owner": {
+              "name": "data-platform",
+              "urn": "urn:li:corpGroup:data-platform"
+            },
+            "ownershipType": {
+              "type": "CUSTOM_OWNERSHIP_TYPE",
+              "urn": "urn:li:ownershipType:__system__dataowner"
+            },
+            "type": "DATAOWNER"
+          }
+        ]
+      },
+      "platform": {
+        "name": "snowflake",
+        "urn": "urn:li:dataPlatform:snowflake"
+      },
+      "properties": {
+        "customProperties": [
+          {
+            "key": "evidence",
+            "value": "live-datahub-ml-lineage"
+          },
+          {
+            "key": "project",
+            "value": "ModelGuard"
+          }
+        ],
+        "description": "Approved training dataset for the production churn model.",
+        "name": "churn_training_dataset"
+      },
+      "relatedDocuments": {
+        "count": 10,
+        "start": 0,
+        "total": 0
+      },
+      "schemaMetadata": {
+        "fields": [
+          {
+            "description": "Model input feature representing account tenure.",
+            "fieldPath": "account_age_months",
+            "nativeDataType": "INTEGER",
+            "nullable": false
+          },
+          {
+            "description": "Training target for customer churn.",
+            "fieldPath": "churned",
+            "nativeDataType": "BOOLEAN",
+            "nullable": false
+          },
+          {
+            "description": "Stable customer identifier.",
+            "fieldPath": "customer_id",
+            "nativeDataType": "VARCHAR",
+            "nullable": false
+          },
+          {
+            "description": "Model input feature derived from customer spend.",
+            "fieldPath": "monthly_spend",
+            "nativeDataType": "DOUBLE",
+            "nullable": false
+          }
+        ],
+        "name": "churn_training_dataset",
+        "platformUrn": "urn:li:dataPlatform:snowflake"
+      },
+      "schema_fields": [
+        {
+          "description": "Model input feature representing account tenure.",
+          "fieldPath": "account_age_months",
+          "nativeDataType": "INTEGER",
+          "nullable": false
+        },
+        {
+          "description": "Training target for customer churn.",
+          "fieldPath": "churned",
+          "nativeDataType": "BOOLEAN",
+          "nullable": false
+        },
+        {
+          "description": "Stable customer identifier.",
+          "fieldPath": "customer_id",
+          "nativeDataType": "VARCHAR",
+          "nullable": false
+        },
+        {
+          "description": "Model input feature derived from customer spend.",
+          "fieldPath": "monthly_spend",
+          "nativeDataType": "DOUBLE",
+          "nullable": false
+        }
+      ],
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+    },
+    "schema_fields": [
+      {
+        "description": "Model input feature representing account tenure.",
+        "field_path": "account_age_months",
+        "glossary_terms": [],
+        "native_type": "INTEGER",
+        "nullable": false,
+        "tags": []
+      },
+      {
+        "description": "Training target for customer churn.",
+        "field_path": "churned",
+        "glossary_terms": [],
+        "native_type": "BOOLEAN",
+        "nullable": false,
+        "tags": []
+      },
+      {
+        "description": "Stable customer identifier.",
+        "field_path": "customer_id",
+        "glossary_terms": [],
+        "native_type": "VARCHAR",
+        "nullable": false,
+        "tags": []
+      },
+      {
+        "description": "Model input feature derived from customer spend.",
+        "field_path": "monthly_spend",
+        "glossary_terms": [],
+        "native_type": "DOUBLE",
+        "nullable": false,
+        "tags": []
+      }
+    ],
+    "tags": [],
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+  },
+  "generated_at": "2026-08-02T07:10:23+00:00",
+  "max_hops": 3,
+  "provider": "mcp",
+  "provider_metadata": {
+    "downstream_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataPlatform:mlflow",
+      "urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "urn:li:mlFeature:(modelguard_customer_features,account_age_months)",
+      "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)",
+      "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "urn:li:mlPrimaryKey:(modelguard_customer_features,customer_id)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "entity_details_available": true,
+    "entity_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataPlatform:snowflake",
+      "urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "max_results": 100,
+    "schema_limit": 200,
+    "tools": [
+      "get_entities",
+      "get_lineage",
+      "list_schema_fields"
+    ],
+    "upstream_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+      "urn:li:dataPlatform:airflow",
+      "urn:li:dataPlatform:snowflake",
+      "urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "warnings": []
+  },
+  "source_column": null,
+  "source_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+  "upstream": [
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 2,
+      "name": "customer_features",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:snowflake', 'name': 'snowflake'}",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 4,
+      "name": "raw_customers",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:snowflake', 'name': 'snowflake'}",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 1,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 3,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)"
+    }
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "downstream": [
+    {
+      "description": "Versioned production churn models protected by ModelGuard.",
+      "direction": "downstream",
+      "entity_type": "MLMODEL_GROUP",
+      "hops": 1,
+      "name": "modelguard-churn-models",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:mlflow', 'name': 'mlflow'}",
+      "urn": "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    }
+  ],
+  "entity": {
+    "description": "Production churn model used by the ModelGuard regression scenario.",
+    "entity_type": "MLMODEL",
+    "glossary_terms": [],
+    "name": "churn-model-v3",
+    "owners": [],
+    "platform": "mlflow",
+    "quality_signals": [],
+    "raw": {
+      "description": "Production churn model used by the ModelGuard regression scenario.",
+      "entityType": "MLMODEL",
+      "name": "churn-model-v3",
+      "origin": "PROD",
+      "ownership": {
+        "owners": [
+          {
+            "owner": {
+              "name": "data-platform",
+              "urn": "urn:li:corpGroup:data-platform"
+            },
+            "ownershipType": {
+              "type": "CUSTOM_OWNERSHIP_TYPE",
+              "urn": "urn:li:ownershipType:__system__dataowner"
+            },
+            "type": "DATAOWNER"
+          }
+        ]
+      },
+      "platform": {
+        "name": "mlflow",
+        "urn": "urn:li:dataPlatform:mlflow"
+      },
+      "relatedDocuments": {
+        "count": 10,
+        "start": 0,
+        "total": 0
+      },
+      "schema_fields": [],
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    },
+    "schema_fields": [],
+    "tags": [],
+    "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+  },
+  "generated_at": "2026-08-02T07:10:27+00:00",
+  "max_hops": 3,
+  "provider": "mcp",
+  "provider_metadata": {
+    "downstream_urns": [
+      "urn:li:dataPlatform:mlflow",
+      "urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)",
+      "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    ],
+    "entity_details_available": true,
+    "entity_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataPlatform:mlflow",
+      "urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "max_results": 100,
+    "schema_limit": 200,
+    "tools": [
+      "get_entities",
+      "get_lineage",
+      "list_schema_fields"
+    ],
+    "upstream_urns": [
+      "urn:li:corpGroup:data-platform",
+      "urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)",
+      "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)",
+      "urn:li:dataPlatform:airflow",
+      "urn:li:dataPlatform:snowflake",
+      "urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)",
+      "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+      "urn:li:mlFeature:(modelguard_customer_features,account_age_months)",
+      "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)",
+      "urn:li:ownershipType:__system__dataowner"
+    ],
+    "warnings": []
+  },
+  "source_column": null,
+  "source_urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)",
+  "upstream": [
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 4,
+      "name": "customer_features",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:snowflake', 'name': 'snowflake'}",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 6,
+      "name": "raw_customers",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:snowflake', 'name': 'snowflake'}",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 2,
+      "name": "churn_training_dataset",
+      "paths": [],
+      "platform": "{'urn': 'urn:li:dataPlatform:snowflake', 'name': 'snowflake'}",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 3,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+    },
+    {
+      "description": null,
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 5,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)"
+    },
+    {
+      "description": "Completed account age in months used by the churn model.",
+      "direction": "upstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": "account_age_months",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,account_age_months)"
+    },
+    {
+      "description": "Average monthly spend used by the churn model.",
+      "direction": "upstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": "monthly_spend",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)"
+    }
+  ]
+}

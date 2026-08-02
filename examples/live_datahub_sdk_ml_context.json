@@ -1,0 +1,179 @@
+{
+  "downstream": [
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLMODEL",
+      "hops": 2,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,account_age_months)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLFEATURE",
+      "hops": 1,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlFeature:(modelguard_customer_features,monthly_spend)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLMODEL_GROUP",
+      "hops": 3,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlModelGroup:(urn:li:dataPlatform:mlflow,modelguard-churn-models,PROD)"
+    },
+    {
+      "description": null,
+      "direction": "downstream",
+      "entity_type": "MLPRIMARY_KEY",
+      "hops": 1,
+      "name": null,
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:mlPrimaryKey:(modelguard_customer_features,customer_id)"
+    }
+  ],
+  "entity": {
+    "description": "Approved training dataset for the production churn model.",
+    "entity_type": null,
+    "glossary_terms": [],
+    "name": "churn_training_dataset",
+    "owners": [],
+    "platform": null,
+    "quality_signals": [],
+    "raw": {
+      "customProperties": {
+        "evidence": "live-datahub-ml-lineage",
+        "project": "ModelGuard"
+      },
+      "custom_properties": {
+        "evidence": "live-datahub-ml-lineage",
+        "project": "ModelGuard"
+      },
+      "description": "Approved training dataset for the production churn model.",
+      "displayName": "churn_training_dataset",
+      "display_name": "churn_training_dataset",
+      "entityType": null,
+      "owners": [
+        {
+          "owner": "urn:li:corpGroup:data-platform",
+          "type": "DATAOWNER"
+        }
+      ],
+      "platform": {
+        "entity_type": "dataPlatform"
+      },
+      "qualified_name": null,
+      "schema": [
+        {
+          "description": "Stable customer identifier.",
+          "field_path": "customer_id",
+          "native_type": "VARCHAR",
+          "tags": null,
+          "terms": null
+        },
+        {
+          "description": "Model input feature derived from customer spend.",
+          "field_path": "monthly_spend",
+          "native_type": "DOUBLE",
+          "tags": null,
+          "terms": null
+        },
+        {
+          "description": "Model input feature representing account tenure.",
+          "field_path": "account_age_months",
+          "native_type": "INTEGER",
+          "tags": null,
+          "terms": null
+        },
+        {
+          "description": "Training target for customer churn.",
+          "field_path": "churned",
+          "native_type": "BOOLEAN",
+          "tags": null,
+          "terms": null
+        }
+      ],
+      "tags": null,
+      "terms": null,
+      "urn": "{'entity_type': 'dataset', 'name': 'modelguard.training.churn_training_dataset', 'platform': 'urn:li:dataPlatform:snowflake'}"
+    },
+    "schema_fields": [],
+    "tags": [],
+    "urn": "{'entity_type': 'dataset', 'name': 'modelguard.training.churn_training_dataset', 'platform': 'urn:li:dataPlatform:snowflake'}"
+  },
+  "generated_at": "2026-08-02T07:10:13+00:00",
+  "max_hops": 3,
+  "provider": "sdk",
+  "provider_metadata": {
+    "entity_details_available": true,
+    "raw_lineage_counts": {
+      "downstream": 5,
+      "upstream": 4
+    },
+    "sdk_entity_type": "Dataset",
+    "warnings": []
+  },
+  "source_column": null,
+  "source_urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.training.churn_training_dataset,PROD)",
+  "upstream": [
+    {
+      "description": "Production customer features investigated by ModelGuard.",
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 2,
+      "name": null,
+      "paths": [],
+      "platform": "snowflake",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.features.customer_features,PROD)"
+    },
+    {
+      "description": "Source customer records for the ModelGuard live ML lineage proof.",
+      "direction": "upstream",
+      "entity_type": "DATASET",
+      "hops": 4,
+      "name": null,
+      "paths": [],
+      "platform": "snowflake",
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,modelguard.raw.customers,PROD)"
+    },
+    {
+      "description": "ModelGuard live lineage job: build_churn_training_dataset.",
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 1,
+      "name": "build_churn_training_dataset",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_churn_training_dataset)"
+    },
+    {
+      "description": "ModelGuard live lineage job: build_customer_features.",
+      "direction": "upstream",
+      "entity_type": "DATA_JOB",
+      "hops": 3,
+      "name": "build_customer_features",
+      "paths": [],
+      "platform": null,
+      "urn": "urn:li:dataJob:(urn:li:dataFlow:(airflow,modelguard_churn_feature_pipeline,prod),build_customer_features)"
+    }
+  ]
+}
