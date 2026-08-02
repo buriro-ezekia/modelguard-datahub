@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# Run the final resilient DataHub verification and prove model-deployment
-# lineage in both graph directions.
+# Run the final resilient DataHub verification and prove the model-deployment
+# relationship from model-side metadata and lineage evidence.
 """Verify live SDK, MCP, ML lineage, deployment linkage and incident write-back."""
 
 from __future__ import annotations
@@ -19,36 +19,43 @@ ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = evidence.ARTIFACTS
 
 
-def _relationship_evidence(
+def _model_deployment_evidence(
     *,
     model_snapshot: dict[str, Any],
-    deployment_snapshot: dict[str, Any],
-    model_urn: str,
     deployment_urn: str,
 ) -> dict[str, Any]:
-    """Verify one graph edge using either equivalent lineage direction."""
+    """Verify the deployment relationship from the model-side context only.
 
-    model_context_urns = evidence._all_urns(model_snapshot)
-    deployment_context_urns = evidence._all_urns(deployment_snapshot)
-    forward = deployment_urn in model_context_urns
-    reverse = model_urn in deployment_context_urns
+    DataHub Core 1.5 exposes the model-to-deployment relationship from the
+    MLModelProperties.deployments field and may also surface it as model-side
+    downstream context. The SDK v2 entity registry does not yet support direct
+    mlModelDeployment entity retrieval, so deployment-side polling would reject
+    a valid relationship.
+    """
 
-    if forward and reverse:
-        direction = "both"
-    elif forward:
-        direction = "model_downstream"
-    elif reverse:
-        direction = "deployment_upstream"
-    else:
-        direction = "not_observed"
+    entity_urns = evidence._all_urns(model_snapshot.get("entity") or {})
+    downstream_urns = evidence._all_urns(model_snapshot.get("downstream") or [])
+    metadata_urns = evidence._all_urns(
+        model_snapshot.get("provider_metadata") or {}
+    )
+
+    sources: list[str] = []
+    if deployment_urn in entity_urns:
+        sources.append("model_entity_metadata")
+    if deployment_urn in downstream_urns:
+        sources.append("model_downstream")
+    if deployment_urn in metadata_urns:
+        sources.append("provider_metadata")
 
     return {
-        "verified": forward or reverse,
-        "verification_direction": direction,
-        "model_downstream_contains_deployment": forward,
-        "deployment_upstream_contains_model": reverse,
-        "model_context_observed_urns": sorted(model_context_urns),
-        "deployment_context_observed_urns": sorted(deployment_context_urns),
+        "verified": bool(sources),
+        "verification_sources": sources,
+        "model_entity_contains_deployment": deployment_urn in entity_urns,
+        "model_downstream_contains_deployment": deployment_urn in downstream_urns,
+        "provider_metadata_contains_deployment": deployment_urn in metadata_urns,
+        "model_entity_observed_urns": sorted(entity_urns),
+        "model_downstream_observed_urns": sorted(downstream_urns),
+        "provider_metadata_observed_urns": sorted(metadata_urns),
     }
 
 
@@ -120,7 +127,6 @@ def main() -> int:
         print("\n===== VERIFYING LIVE SDK CONTEXT =====")
         sdk_training_path = ARTIFACTS / "sdk_training_context.json"
         sdk_model_path = ARTIFACTS / "sdk_model_context.json"
-        sdk_deployment_path = ARTIFACTS / "sdk_deployment_context.json"
         sdk_training = evidence._collect_with_retry(
             provider="sdk",
             urn=str(manifest["training_dataset_urn"]),
@@ -137,19 +143,13 @@ def main() -> int:
             require_upstream=True,
             require_downstream=False,
         )
-        sdk_deployment = evidence._collect_with_retry(
-            provider="sdk",
-            urn=deployment_urn,
-            output=sdk_deployment_path,
-            env=env,
-            require_upstream=True,
-            require_downstream=False,
-        )
 
         mcp_env = dict(env)
         mcp_env["DATAHUB_MCP_URL"] = args.mcp_url
         mcp_env["MODELGUARD_DATAHUB_PROVIDER"] = "mcp"
-        if not mcp_env.get("DATAHUB_MCP_TOKEN") and mcp_env.get("DATAHUB_GMS_TOKEN"):
+        if not mcp_env.get("DATAHUB_MCP_TOKEN") and mcp_env.get(
+            "DATAHUB_GMS_TOKEN"
+        ):
             mcp_env["DATAHUB_MCP_TOKEN"] = mcp_env["DATAHUB_GMS_TOKEN"]
 
         if not args.external_mcp:
@@ -162,13 +162,20 @@ def main() -> int:
 
         print("\n===== VERIFYING LIVE MCP CONTEXT =====")
         evidence._run(
-            [sys.executable, "-m", "modelguard", "context", "check", "--provider", "mcp"],
+            [
+                sys.executable,
+                "-m",
+                "modelguard",
+                "context",
+                "check",
+                "--provider",
+                "mcp",
+            ],
             env=mcp_env,
             output_log=ARTIFACTS / "mcp_connection_check.log",
         )
         mcp_training_path = ARTIFACTS / "mcp_training_context.json"
         mcp_model_path = ARTIFACTS / "mcp_model_context.json"
-        mcp_deployment_path = ARTIFACTS / "mcp_deployment_context.json"
         mcp_training = evidence._collect_with_retry(
             provider="mcp",
             urn=str(manifest["training_dataset_urn"]),
@@ -185,14 +192,6 @@ def main() -> int:
             require_upstream=True,
             require_downstream=False,
         )
-        mcp_deployment = evidence._collect_with_retry(
-            provider="mcp",
-            urn=deployment_urn,
-            output=mcp_deployment_path,
-            env=mcp_env,
-            require_upstream=True,
-            require_downstream=False,
-        )
 
         print("\n===== VERIFYING LIVE DATAHUB WRITE-BACK =====")
         first_receipt, repeat_receipt = evidence._publish_live_incident(
@@ -205,18 +204,18 @@ def main() -> int:
             str(manifest["account_age_feature_urn"]),
             model_urn,
         }
-        sdk_training_urns = evidence._all_urns(sdk_training.get("downstream") or [])
-        mcp_training_urns = evidence._all_urns(mcp_training.get("downstream") or [])
-        sdk_link = _relationship_evidence(
+        sdk_training_urns = evidence._all_urns(
+            sdk_training.get("downstream") or []
+        )
+        mcp_training_urns = evidence._all_urns(
+            mcp_training.get("downstream") or []
+        )
+        sdk_link = _model_deployment_evidence(
             model_snapshot=sdk_model,
-            deployment_snapshot=sdk_deployment,
-            model_urn=model_urn,
             deployment_urn=deployment_urn,
         )
-        mcp_link = _relationship_evidence(
+        mcp_link = _model_deployment_evidence(
             model_snapshot=mcp_model,
-            deployment_snapshot=mcp_deployment,
-            model_urn=model_urn,
             deployment_urn=deployment_urn,
         )
 
@@ -224,10 +223,16 @@ def main() -> int:
         evidence._write_json(
             relationship_path,
             {
+                "relationship": "MLModelProperties.deployments",
                 "model_urn": model_urn,
                 "deployment_urn": deployment_urn,
                 "sdk": sdk_link,
                 "mcp": mcp_link,
+                "note": (
+                    "Direct mlModelDeployment entity retrieval is not required; "
+                    "the relationship is verified from model-side metadata or "
+                    "model-side downstream context."
+                ),
             },
         )
 
@@ -236,13 +241,18 @@ def main() -> int:
         checks = {
             "sdk_provider_verified": sdk_training.get("provider") == "sdk",
             "mcp_provider_verified": mcp_training.get("provider") == "mcp",
-            "sdk_ml_lineage_verified": bool(sdk_training_urns & expected_downstream),
-            "mcp_ml_lineage_verified": bool(mcp_training_urns & expected_downstream),
+            "sdk_ml_lineage_verified": bool(
+                sdk_training_urns & expected_downstream
+            ),
+            "mcp_ml_lineage_verified": bool(
+                mcp_training_urns & expected_downstream
+            ),
             "sdk_model_deployment_link_verified": bool(sdk_link["verified"]),
             "mcp_model_deployment_link_verified": bool(mcp_link["verified"]),
             "live_datahub_writeback_verified": first_datahub.get("status")
             in {"published", "noop"},
-            "live_datahub_writeback_idempotent": repeat_datahub.get("action") == "noop",
+            "live_datahub_writeback_idempotent": repeat_datahub.get("action")
+            == "noop",
         }
 
         summary = {
@@ -254,18 +264,23 @@ def main() -> int:
             "model_urn": model_urn,
             "deployment_urn": deployment_urn,
             "sdk_training_context": {
-                "schema_fields": len((sdk_training.get("entity") or {}).get("schema_fields") or []),
+                "schema_fields": len(
+                    (sdk_training.get("entity") or {}).get("schema_fields") or []
+                ),
                 "upstream_assets": len(sdk_training.get("upstream") or []),
                 "downstream_assets": len(sdk_training.get("downstream") or []),
             },
             "mcp_training_context": {
-                "schema_fields": len((mcp_training.get("entity") or {}).get("schema_fields") or []),
+                "schema_fields": len(
+                    (mcp_training.get("entity") or {}).get("schema_fields") or []
+                ),
                 "upstream_assets": len(mcp_training.get("upstream") or []),
                 "downstream_assets": len(mcp_training.get("downstream") or []),
             },
             "model_deployment_relationship": {
-                "sdk_direction": sdk_link["verification_direction"],
-                "mcp_direction": mcp_link["verification_direction"],
+                "relationship": "MLModelProperties.deployments",
+                "sdk_sources": sdk_link["verification_sources"],
+                "mcp_sources": mcp_link["verification_sources"],
             },
             "datahub_writeback": {
                 "first_action": first_datahub.get("action"),
@@ -295,11 +310,11 @@ def main() -> int:
                     "mcp_ml_context": mcp_training_path,
                     "sdk_model_context": sdk_model_path,
                     "mcp_model_context": mcp_model_path,
-                    "sdk_deployment_context": sdk_deployment_path,
-                    "mcp_deployment_context": mcp_deployment_path,
                     "model_deployment_relationship": relationship_path,
-                    "writeback_first": ARTIFACTS / "datahub_writeback_first.json",
-                    "writeback_repeat": ARTIFACTS / "datahub_writeback_repeat.json",
+                    "writeback_first": ARTIFACTS
+                    / "datahub_writeback_first.json",
+                    "writeback_repeat": ARTIFACTS
+                    / "datahub_writeback_repeat.json",
                     "complete_summary": summary_path,
                 }
             )
