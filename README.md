@@ -2,37 +2,112 @@
 
 [![ModelGuard CI](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/modelguard.yml/badge.svg)](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/modelguard.yml)
 [![Deploy demo](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/pages.yml/badge.svg)](https://github.com/buriro-ezekia/modelguard-datahub/actions/workflows/pages.yml)
-[![License](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
+[![Licence](https://img.shields.io/badge/licence-Apache--2.0-blue.svg)](LICENSE)
 
-> What if a CI/CD pipeline did not merely detect a model regression, but traced its cause through DataHub, proposed the smallest defensible repair, validated it independently and preserved the outcome for the next engineer or agent?
+> What if a CI/CD pipeline did not merely detect an ML regression, but traced the likely cause through DataHub, proposed the smallest defensible repair, validated it independently and returned a review-ready result?
 
-ModelGuard is a metadata-aware production ML agent. It turns a failed model-quality gate into an evidence-backed investigation, a constrained repair proposal and a durable operational record. DataHub supplies the schema, ownership, quality and lineage context; deterministic policies decide whether ModelGuard may diagnose, repair, validate or publish.
+ModelGuard is a metadata-aware production ML agent built for the **Production ML Agents** challenge. It turns a failed model-quality gate into an evidence-backed investigation, a constrained repair proposal and a durable operational record.
 
-ModelGuard never merges its own repair. It produces a review-ready result while keeping the final decision with an engineer.
+DataHub provides the connected context: datasets, schemas, ownership, quality signals, jobs, features, models, deployments and lineage. ModelGuard then applies deterministic policy gates to decide whether it may diagnose, repair, validate or publish.
 
-| Judge-facing resource | Link |
+**ModelGuard never merges its own repair.** It keeps the final decision with an engineer.
+
+## Project status
+
+The complete demonstrated flow is implemented and verified.
+
+- The public showcase is deterministic and requires no credentials.
+- The DataHub Python SDK integration has been verified against a live DataHub Core instance.
+- The official self-hosted DataHub MCP Server has been verified over Streamable HTTP.
+- Upstream and downstream ML lineage has been retrieved through both SDK and MCP providers.
+- The exact model-to-deployment relationship has been verified through live SDK model metadata.
+- Live DataHub incident write-back and idempotency have been verified.
+- Sanitised live evidence is committed under [`examples/`](examples/).
+
+## Judge-facing links
+
+| Resource | Link |
 |---|---|
 | Interactive demonstration | [Open the hosted demo](https://buriro-ezekia.github.io/modelguard-datahub/) |
 | Demonstration video | [Watch the 2 minute 34 second video](https://youtu.be/S96pbK7k_nc) |
-| Sample generated artefacts | [Inspect `examples/`](examples/) |
+| Generated evidence | [Inspect `examples/`](examples/) |
 | Fast judging guide | [Read the judging guide](submission/JUDGING_GUIDE.md) |
 | Reproduction instructions | [Read the testing instructions](submission/TESTING_INSTRUCTIONS.md) |
-| Live DataHub verification | [Run SDK, MCP, ML lineage and write-back checks](submission/LIVE_DATAHUB_EVIDENCE.md) |
-| Challenge category | **Production ML Agents** |
+| Live DataHub verification | [Read the live verification guide](submission/LIVE_DATAHUB_EVIDENCE.md) |
 
 ![ModelGuard hosted demonstration](docs/assets/screenshot-overview.svg)
 
-## Why ModelGuard exists
+## The problem
 
-A production model can deteriorate because of a change that looks ordinary in code review: a removed boundary check, an altered schema, a null-handling mistake or a feature transformation that behaves badly at the edge of its valid range.
+A production model can deteriorate because of a change that looks ordinary in code review: a removed boundary check, an altered schema, a null-handling mistake or a feature transformation that fails at the edge of its valid range.
 
-A conventional CI pipeline can report that a metric fell. It usually cannot explain which upstream asset mattered, distinguish the leading cause from plausible alternatives, test a narrowly scoped correction and write the resolved knowledge back into the metadata graph.
+A conventional CI pipeline can report that a metric fell. It usually cannot answer the questions that matter next:
 
-ModelGuard closes that gap. It behaves like a careful ML platform engineer: collect evidence first, consider competing explanations, act only inside explicit boundaries and verify every claim before publication.
+- Which upstream asset is relevant?
+- What changed near the failure?
+- Which explanation best fits the metric and data evidence?
+- Can the smallest safe correction be tested without changing the source workspace?
+- Can the resolved result be preserved for the next engineer or agent?
 
-## Verified demonstration
+ModelGuard closes that gap by combining deterministic ML gates with DataHub metadata and lineage.
 
-The deterministic showcase models a churn feature regression introduced by direct division in a feature transformation.
+## Six guarded phases
+
+```text
+Failed model evaluation
+        ↓
+1. Detect: deterministic regression gate
+        ↓
+2. Context: DataHub metadata and lineage
+        ↓
+3. Diagnose: evidence registry and competing hypotheses
+        ↓
+High-confidence supported diagnosis?
+   ├── No  → abstain; no repair
+   └── Yes
+        ↓
+4. Repair: minimal constrained patch
+        ↓
+5. Validate: temporary workspace, tests and metric re-evaluation
+        ↓
+Metric restored within policy?
+   ├── No  → withhold the patch
+   └── Yes
+        ↓
+6. Publish: review output and resolved DataHub incident
+```
+
+### 1. Detect
+
+`modelguard evaluate` compares the candidate metric with an approved baseline. A regression beyond the configured tolerance returns exit status `1` and emits stable JSON. Agent reasoning cannot override the numerical gate.
+
+### 2. Collect DataHub context
+
+`modelguard context collect` resolves entity metadata, schema, ownership, quality signals and bidirectional lineage through one of three providers:
+
+- DataHub Python SDK;
+- DataHub MCP Server over Streamable HTTP; or
+- deterministic fixture mode for public evaluation and CI.
+
+### 3. Diagnose
+
+`modelguard diagnose` extracts evidence, generates competing hypotheses and ranks them using temporal proximity, lineage relevance, metric explanation, quality corroboration and field specificity. Counter-evidence lowers unsupported explanations. Weak or ambiguous evidence causes explicit abstention.
+
+### 4. Propose a constrained repair
+
+`modelguard repair` supports the explicit `guarded_division` strategy used in the demonstration. It enforces path, file-count, line-budget, file-type and unsafe-token rules before a patch may proceed.
+
+### 5. Validate independently
+
+The patch is applied only inside a temporary copy. ModelGuard compiles the code, runs allow-listed tests and repeats the original metric evaluation. The source workspace is hashed before and after validation and must remain unchanged.
+
+### 6. Publish once
+
+`modelguard publish` requires a high-confidence diagnosis, an approved patch guard, a restored metric, matching repair identifiers and an unchanged source workspace. Publication is a dry run unless `--apply` is explicit. Stable delivery markers prevent duplicate GitHub comments and DataHub incidents.
+
+## Verified deterministic showcase
+
+The public showcase models a churn feature regression caused by direct division in a feature transformation.
 
 ```text
 F1 gate:               0.842 → 0.771 (failed)
@@ -46,21 +121,16 @@ GitHub first/repeat:    created / noop
 DataHub first/repeat:   raised_and_resolved / noop
 ```
 
-These results are not typed into the website as unsupported claims. The one-command showcase executes the project CLI and writes the evidence, diagnosis, patch, validation and publication receipts to `artifacts/showcase/`. GitHub Actions checks the same expected outcome.
+The hosted site is a read-only replay of generated fixture artefacts. The same expected result is checked in GitHub Actions.
 
-## Judge it quickly
-
-### Fastest route: hosted demonstration
-
-Open the [interactive demonstration](https://buriro-ezekia.github.io/modelguard-datahub/) and select **Replay the incident**. The site is a read-only replay of verified fixture artefacts, so it requires no login, token or external service.
-
-### Reproduce the complete flow
+### Run the showcase
 
 ```bash
+# Run the complete deterministic six-phase workflow
 python scripts/run_showcase.py
 ```
 
-Expected summary:
+Expected ending:
 
 ```text
 ModelGuard showcase complete
@@ -70,76 +140,6 @@ Repair: validated | guard=True
 Publish: GitHub=created DataHub=raised_and_resolved
 Repeat: GitHub=noop DataHub=noop
 ```
-
-### Inspect the output without running anything
-
-The [`examples/`](examples/) folder contains the generated JSON, Markdown and diff artefacts for every stage, including the root-cause report, validated repair, GitHub comment and DataHub incident record.
-
-## Six guarded phases
-
-```text
-Failed model evaluation
-        ↓
-1. Detect: deterministic regression gate
-        ↓
-2. Context: DataHub schema, ownership, quality and lineage
-        ↓
-3. Diagnose: evidence registry and competing hypotheses
-        ↓
-High-confidence supported diagnosis?
-   ├── No  → abstain; no repair
-   └── Yes
-        ↓
-4. Repair: minimal constrained patch and static guard
-        ↓
-5. Validate: temporary workspace, compile, tests and model evaluation
-        ↓
-Metric restored within policy?
-   ├── No  → withhold the patch
-   └── Yes
-        ↓
-6. Publish: one GitHub review comment and one resolved DataHub incident
-```
-
-### 1. Detect
-
-`modelguard evaluate` compares the candidate metric with an approved baseline. A regression beyond the configured tolerance returns exit status `1` and emits stable JSON. Agent reasoning cannot override this numerical gate.
-
-### 2. Collect DataHub context
-
-`modelguard context collect` resolves entity metadata, schema, ownership, quality signals and bidirectional lineage through one of three providers:
-
-- DataHub Python SDK;
-- DataHub MCP Server over Streamable HTTP; or
-- deterministic fixture mode for CI and public evaluation.
-
-### 3. Diagnose
-
-`modelguard diagnose` extracts evidence, generates competing hypotheses and ranks them using temporal proximity, lineage relevance, metric explanation, quality corroboration and field specificity. Counter-evidence lowers unsupported explanations. Weak or ambiguous evidence causes explicit abstention.
-
-### 4. Propose a constrained repair
-
-`modelguard repair` currently supports the explicit `guarded_division` strategy used by the demonstration. It enforces path, file-count, line-budget, file-type and unsafe-token rules before a patch may proceed.
-
-### 5. Validate independently
-
-The patch is applied only inside a temporary copy. ModelGuard compiles the code, runs allow-listed tests and repeats the original metric evaluation. The source workspace is hashed before and after validation and must remain unchanged.
-
-### 6. Publish once
-
-`modelguard publish` requires a high-confidence diagnosis, an approved patch guard, a restored metric, matching repair identifiers and an unchanged source workspace. Publication is a dry run unless `--apply` is explicit. Stable delivery markers prevent duplicate GitHub comments and DataHub incidents.
-
-## Why DataHub is essential
-
-ModelGuard does not diagnose the failure from the changed line alone. DataHub gives it the connected operational picture:
-
-- the path from raw customers to customer features, training data, the model and the production deployment;
-- the schema and affected fields;
-- ownership and quality signals;
-- upstream and downstream relevance; and
-- a place to preserve the resolved incident for later investigations.
-
-This context changes the diagnosis. The unchanged zero-age source rows count as counter-evidence against blaming source data alone, while the changed feature transformation sits on the relevant lineage path and explains the 37 new infinite values.
 
 ## Demonstrated repair
 
@@ -157,6 +157,120 @@ The proposal changes two lines in one cited function. ModelGuard validates it in
 
 ![Evidence-backed diagnosis and validated patch](docs/assets/screenshot-evidence.svg)
 
+## Verified live DataHub integration
+
+The live harness creates a stable ML metadata graph covering:
+
+```text
+raw customer dataset
+        ↓
+feature-engineering data job
+        ↓
+feature dataset
+        ↓
+training data job
+        ↓
+training dataset
+        ↓
+ML features and feature table
+        ↓
+churn-model-v3
+        ↓
+churn-api-prod
+```
+
+It then verifies the graph through the DataHub SDK and the self-hosted MCP Server, followed by live DataHub incident publication.
+
+The committed summary reports all supported checks as passed:
+
+```json
+{
+  "sdk_provider_verified": true,
+  "mcp_provider_verified": true,
+  "sdk_ml_lineage_verified": true,
+  "mcp_ml_lineage_verified": true,
+  "mcp_model_context_verified": true,
+  "sdk_model_deployment_link_verified": true,
+  "datahub_model_deployment_link_verified": true,
+  "live_datahub_writeback_verified": true,
+  "live_datahub_writeback_idempotent": true
+}
+```
+
+The tested MCP context contained four upstream assets and five downstream assets for the training dataset. The final committed write-back evidence reused the existing resolved incident and returned `noop` for both publication attempts, demonstrating stable idempotency rather than creating a duplicate.
+
+### Important MCP capability boundary
+
+The tested combination was DataHub Core 1.5 with `mcp-server-datahub` 0.6.0.
+
+MCP verified:
+
+- server connectivity;
+- training-data context;
+- model context; and
+- upstream and downstream ML lineage.
+
+The model-to-deployment association is stored as the named `MLModelProperties.deployments` relationship. That relationship was not exposed by the tested MCP `get_lineage` response, so ModelGuard does not claim that it was. The exact deployment URN was verified through live SDK model metadata from the same DataHub graph.
+
+This distinction is recorded in [`examples/live_datahub_complete_summary.json`](examples/live_datahub_complete_summary.json) and [`examples/live_datahub_model_deployment_relationship.json`](examples/live_datahub_model_deployment_relationship.json).
+
+### Run the live verification
+
+Requirements:
+
+- Python 3.11 or 3.12;
+- Docker and Docker Compose v2 for a local DataHub quickstart; and
+- permission to emit metadata and manage incidents.
+
+```bash
+# Install ModelGuard with live DataHub and MCP dependencies
+python -m pip install -e ".[dev,live]"
+
+# Use a local DataHub Core instance
+export DATAHUB_GMS_URL="http://localhost:8080"
+unset DATAHUB_GMS_TOKEN
+
+# Start DataHub when necessary and verify all supported live capabilities
+python scripts/run_live_datahub_verified.py \
+  --install-mcp-server \
+  --promote
+```
+
+Required ending:
+
+```text
+LIVE DATAHUB SDK, MCP, ML LINEAGE AND WRITE-BACK PASSED
+```
+
+The harness never runs `datahub docker nuke`. See [`submission/LIVE_DATAHUB_EVIDENCE.md`](submission/LIVE_DATAHUB_EVIDENCE.md) for authenticated environments, managed MCP endpoints, generated artefacts and safety notes.
+
+## Installation
+
+### GitHub Codespaces
+
+```bash
+# Install the development environment and run the deterministic showcase
+source scripts/bootstrap_codespace.sh
+python scripts/run_showcase.py
+```
+
+### Local Python
+
+```bash
+# Clone, create an environment and verify the project
+ git clone https://github.com/buriro-ezekia/modelguard-datahub.git
+ cd modelguard-datahub
+ python -m venv .venv
+ source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+ python -m pip install --upgrade pip
+ python -m pip install -e ".[dev]"
+ ruff check .
+ pytest
+ python scripts/run_showcase.py
+```
+
+The deterministic showcase requires no credentials and writes only generated output under `artifacts/`.
+
 ## Safety boundaries
 
 - Deterministic metric detection precedes diagnosis.
@@ -170,122 +284,31 @@ The proposal changes two lines in one cited function. ModelGuard validates it in
 - The original metric policy must pass after repair.
 - Publication remains a dry run unless `--apply` is supplied.
 - Credentials come from environment variables and never enter receipts.
+- MCP mutation tools remain disabled in the live verification.
 - Stable markers make GitHub and DataHub publication idempotent.
 - ModelGuard never merges its own repair.
 
-## Installation and local reproduction
+## Evidence
 
-### GitHub Codespaces
+The [`examples/`](examples/) directory contains generated evidence for the deterministic showcase and the live DataHub verification.
 
-```bash
-source scripts/bootstrap_codespace.sh
-python scripts/run_showcase.py
-```
+Key live files include:
 
-### Local Python
+- [`live_datahub_complete_summary.json`](examples/live_datahub_complete_summary.json);
+- [`live_datahub_ml_lineage_manifest.json`](examples/live_datahub_ml_lineage_manifest.json);
+- [`live_datahub_sdk_ml_context.json`](examples/live_datahub_sdk_ml_context.json);
+- [`live_datahub_mcp_ml_context.json`](examples/live_datahub_mcp_ml_context.json);
+- [`live_datahub_sdk_model_context.json`](examples/live_datahub_sdk_model_context.json);
+- [`live_datahub_mcp_model_context.json`](examples/live_datahub_mcp_model_context.json);
+- [`live_datahub_model_deployment_relationship.json`](examples/live_datahub_model_deployment_relationship.json); and
+- the first and repeat write-back receipts.
 
-Requirements: Python 3.11 or 3.12 and Git.
+Generated runtime output remains under `artifacts/` and is intentionally ignored by Git. Only reviewed, sanitised evidence is promoted to `examples/`.
 
-```bash
-git clone https://github.com/buriro-ezekia/modelguard-datahub.git
-cd modelguard-datahub
-python -m venv .venv
-source .venv/bin/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -e ".[dev]"
-ruff check .
-pytest
-python scripts/run_showcase.py
-```
-
-The showcase requires no credentials and writes only to `artifacts/showcase/`.
-
-## Live DataHub integration
-
-Fixture mode makes judging reproducible, while the same provider interface supports real DataHub environments.
-
-### Committed live SDK evidence
-
-The repository contains a live DataHub Core SDK snapshot in [`examples/live_datahub_context.json`](examples/live_datahub_context.json). It records a real S3 dataset, one upstream data job and two downstream entities collected from a running DataHub instance. This proves live SDK connectivity and bidirectional lineage retrieval; it is separate from the deterministic ML-specific showcase.
-
-### Complete live SDK, MCP and ML lineage verification
-
-The live evidence harness creates a stable graph spanning raw data, feature jobs, training data, ML features, `churn-model-v3` and `churn-api-prod`. It then collects that context through both the SDK and the official self-hosted MCP Server, followed by live idempotent DataHub incident write-back.
+Run the repository verifier with:
 
 ```bash
-python -m pip install -e ".[dev,live]"
-export DATAHUB_GMS_URL="http://localhost:8080"
-unset DATAHUB_GMS_TOKEN
-python scripts/run_live_datahub_complete.py \
-  --install-mcp-server \
-  --promote
-```
-
-The resilient wrapper reuses a healthy GMS or starts a local DataHub quickstart when port 8080 is offline. The MCP provider unwraps structured tool results and preserves raw URNs for deployment verification. The DataHub writer waits until the resolved incident marker is queryable before the repeat publication, protecting the live idempotency check from search-indexing delay.
-
-The required successful ending is:
-
-```text
-LIVE DATAHUB SDK, MCP, ML LINEAGE AND WRITE-BACK PASSED
-```
-
-See [`submission/LIVE_DATAHUB_EVIDENCE.md`](submission/LIVE_DATAHUB_EVIDENCE.md) for authenticated environments, managed MCP endpoints, generated artefacts and safety notes.
-
-### DataHub Python SDK
-
-```bash
-pip install -e ".[datahub]"
-export DATAHUB_GMS_URL="https://your-datahub.example.com"
-export DATAHUB_GMS_TOKEN="scoped-service-account-token"
-export MODELGUARD_DATAHUB_PROVIDER="sdk"
-python -m modelguard context check --provider sdk
-```
-
-### DataHub MCP Server
-
-```bash
-pip install -e ".[mcp]"
-export DATAHUB_MCP_URL="https://your-tenant.example.com/integrations/ai/mcp/"
-export DATAHUB_MCP_TOKEN="scoped-service-account-token"
-export MODELGUARD_DATAHUB_PROVIDER="mcp"
-python -m modelguard context check --provider mcp
-```
-
-### DataHub incident write-back
-
-```bash
-export DATAHUB_GRAPHQL_URL="https://your-datahub.example.com/api/graphql"
-export DATAHUB_GRAPHQL_TOKEN="scoped-incident-editor-token"
-
-python -m modelguard publish \
-  --diagnosis artifacts/diagnosis_report.json \
-  --repair-plan artifacts/repair_plan.json \
-  --validation artifacts/repair_validation.json \
-  --patch artifacts/validated_patch.diff \
-  --github-mode off \
-  --datahub-mode live \
-  --apply \
-  --output artifacts/datahub_publication_receipt.json
-```
-
-Live context and publication remain opt-in. Use the smallest practical service-account scope and never commit tokens.
-
-## Generated artefacts
-
-The deterministic showcase writes:
-
-- `evaluation.json`;
-- `context_snapshot.json`;
-- `diagnosis_report.json` and `root_cause_report.md`;
-- `repair_plan.json`, `repair_validation.json` and `validated_patch.diff`;
-- `publication_receipt.json`, `github_pr_comment.md` and fixture state files; and
-- `showcase_summary.json`.
-
-The optional live verification writes SDK, MCP, ML-lineage and write-back evidence under `artifacts/live_datahub_complete/` and can promote successful sanitised JSON to `examples/`.
-
-Run the submission verifier with:
-
-```bash
+# Check the complete submission package
 python scripts/verify_submission.py
 ```
 
@@ -295,12 +318,12 @@ ModelGuard is a focused hackathon implementation rather than a general autonomou
 
 - The current repair catalogue contains one explicit strategy: `guarded_division`.
 - The public website is an interactive replay, not a browser-based live DataHub client.
-- The reproducible public showcase uses deterministic DataHub-shaped fixtures so judging needs no external service.
-- Live SDK evidence is committed; complete MCP, ML-lineage and live write-back evidence must be produced against a configured DataHub instance with the supplied harness.
-- Evidence extraction, candidate generation and ranking are deterministic, so the public evaluation needs no external model API.
+- The deterministic evidence extractor and hypothesis ranking do not require an external model API.
+- The tested MCP version did not expose `MLModelProperties.deployments` through `get_lineage`; the exact relationship was verified through the SDK instead.
 - Live GitHub and DataHub writes require explicit permission and scoped credentials where authentication is enabled.
+- ModelGuard proposes and validates repairs but does not approve or merge them.
 
-These limits are deliberate. They make the demonstrated claims reproducible and keep repair authority narrower than diagnostic context.
+These limits are deliberate. They keep the demonstrated claims reproducible and the repair authority narrower than the diagnostic context.
 
 ## Repository layout
 
@@ -308,15 +331,15 @@ These limits are deliberate. They make the demonstrated claims reproducible and 
 modelguard-datahub/
 ├── .github/workflows/       # CI and GitHub Pages deployment
 ├── config/                  # non-secret policies and thresholds
-├── demo/                    # broken transformation and expected repair
+├── demo/                    # regression scenario and expected repair
 ├── docs/                    # hosted interactive demonstration
-├── examples/                # verified outputs for every phase
-├── scripts/                 # Codespaces bootstrap, showcase and live verification
+├── examples/                # reviewed deterministic and live evidence
+├── scripts/                 # bootstrap, showcase and live verification
 ├── src/modelguard/          # detection, context, diagnosis, repair and reporting
-├── submission/              # judging, Devpost and video materials
+├── submission/              # judging, testing and live evidence guides
 └── tests/                   # unit, integration and regression coverage
 ```
 
 ## Licence
 
-Apache License 2.0. See [`LICENSE`](LICENSE).
+ModelGuard is released under the Apache License 2.0. See [`LICENSE`](LICENSE).
