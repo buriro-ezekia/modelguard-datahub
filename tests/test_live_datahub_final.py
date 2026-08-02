@@ -1,5 +1,5 @@
 # Test final live verification without contacting DataHub, Docker or the MCP server.
-"""Contract tests for symmetric model-deployment lineage verification."""
+"""Contract tests for model-side deployment relationship verification."""
 
 from __future__ import annotations
 
@@ -10,6 +10,10 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "scripts"
+MODEL_URN = "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
+DEPLOYMENT_URN = (
+    "urn:li:mlModelDeployment:(urn:li:dataPlatform:kserve,churn-api-prod,PROD)"
+)
 
 
 def _load_script() -> Any:
@@ -26,52 +30,63 @@ def _load_script() -> Any:
         sys.path.remove(str(SCRIPTS))
 
 
+def test_relationship_is_verified_from_model_entity_metadata() -> None:
+    module = _load_script()
+
+    result = module._model_deployment_evidence(
+        model_snapshot={
+            "source_urn": MODEL_URN,
+            "entity": {
+                "urn": MODEL_URN,
+                "raw": {"deployments": [DEPLOYMENT_URN]},
+            },
+        },
+        deployment_urn=DEPLOYMENT_URN,
+    )
+
+    assert result["verified"] is True
+    assert result["verification_sources"] == ["model_entity_metadata"]
+
+
 def test_relationship_is_verified_from_model_downstream() -> None:
     module = _load_script()
-    model_urn = "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
-    deployment_urn = "urn:li:mlModelDeployment:(urn:li:dataPlatform:mlflow,churn-api-prod,PROD)"
 
-    result = module._relationship_evidence(
-        model_snapshot={"downstream": [{"urn": deployment_urn}]},
-        deployment_snapshot={"source_urn": deployment_urn},
-        model_urn=model_urn,
-        deployment_urn=deployment_urn,
-    )
-
-    assert result["verified"] is True
-    assert result["verification_direction"] == "model_downstream"
-
-
-def test_relationship_is_verified_from_deployment_upstream() -> None:
-    module = _load_script()
-    model_urn = "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
-    deployment_urn = "urn:li:mlModelDeployment:(urn:li:dataPlatform:mlflow,churn-api-prod,PROD)"
-
-    result = module._relationship_evidence(
-        model_snapshot={"source_urn": model_urn},
-        deployment_snapshot={
-            "source_urn": deployment_urn,
-            "upstream": [{"urn": model_urn}],
+    result = module._model_deployment_evidence(
+        model_snapshot={
+            "source_urn": MODEL_URN,
+            "downstream": [{"urn": DEPLOYMENT_URN}],
         },
-        model_urn=model_urn,
-        deployment_urn=deployment_urn,
+        deployment_urn=DEPLOYMENT_URN,
     )
 
     assert result["verified"] is True
-    assert result["verification_direction"] == "deployment_upstream"
+    assert result["verification_sources"] == ["model_downstream"]
 
 
-def test_relationship_does_not_pass_from_source_urns_alone() -> None:
+def test_relationship_is_verified_from_provider_metadata() -> None:
     module = _load_script()
-    model_urn = "urn:li:mlModel:(urn:li:dataPlatform:mlflow,churn-model-v3,PROD)"
-    deployment_urn = "urn:li:mlModelDeployment:(urn:li:dataPlatform:mlflow,churn-api-prod,PROD)"
 
-    result = module._relationship_evidence(
-        model_snapshot={"source_urn": model_urn},
-        deployment_snapshot={"source_urn": deployment_urn},
-        model_urn=model_urn,
-        deployment_urn=deployment_urn,
+    result = module._model_deployment_evidence(
+        model_snapshot={
+            "source_urn": MODEL_URN,
+            "provider_metadata": {
+                "entity_urns": [MODEL_URN, DEPLOYMENT_URN],
+            },
+        },
+        deployment_urn=DEPLOYMENT_URN,
+    )
+
+    assert result["verified"] is True
+    assert result["verification_sources"] == ["provider_metadata"]
+
+
+def test_relationship_does_not_pass_from_model_source_urn_alone() -> None:
+    module = _load_script()
+
+    result = module._model_deployment_evidence(
+        model_snapshot={"source_urn": MODEL_URN},
+        deployment_urn=DEPLOYMENT_URN,
     )
 
     assert result["verified"] is False
-    assert result["verification_direction"] == "not_observed"
+    assert result["verification_sources"] == []
