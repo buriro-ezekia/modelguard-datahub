@@ -18,6 +18,14 @@ from modelguard.models import ContextSnapshot, LineageDirection
 
 _REQUIRED_TOOLS = {"get_entities", "list_schema_fields", "get_lineage"}
 _URN_START = re.compile(r"urn:li:[A-Za-z0-9_]+:")
+_OPTIONAL_METADATA_ERROR_MARKERS = (
+    "not yet supported",
+    "unsupported entity type",
+    "entity type is not supported",
+    "does not have a schema",
+    "schema is not supported",
+    "not a dataset",
+)
 
 
 class McpToolCaller(Protocol):
@@ -102,7 +110,9 @@ class _McpSessionContext:
         read_stream, write_stream, _ = await self._stack.enter_async_context(
             streamable_http_client(self.server_url, http_client=http_client)
         )
-        session = await self._stack.enter_async_context(ClientSession(read_stream, write_stream))
+        session = await self._stack.enter_async_context(
+            ClientSession(read_stream, write_stream)
+        )
         await session.initialize()
         return session
 
@@ -139,7 +149,9 @@ class DataHubMcpContextProvider:
             raise DataHubContextError(f"DataHub MCP connection failed: {exc}") from exc
         missing = sorted(_REQUIRED_TOOLS - tools)
         if missing:
-            raise DataHubContextError(f"DataHub MCP server is missing required tools: {missing}")
+            raise DataHubContextError(
+                f"DataHub MCP server is missing required tools: {missing}"
+            )
 
     def collect(
         self,
@@ -151,16 +163,42 @@ class DataHubMcpContextProvider:
         max_results: int,
         schema_limit: int,
     ) -> ContextSnapshot:
+        warnings: list[str] = []
+        entity_payload: Any = {"urn": source_urn}
+        schema_payload: Any = {}
+
         try:
             entity_payload = _unwrap_tool_payload(
                 self.tool_caller.call_tool("get_entities", {"urns": source_urn})
             )
+        except Exception as exc:
+            if not _is_optional_metadata_error(exc):
+                raise DataHubContextError(
+                    f"DataHub MCP entity retrieval failed: {exc}"
+                ) from exc
+            warnings.append(
+                "Entity details are unavailable for this type through get_entities; "
+                f"lineage was collected using the source URN ({exc})."
+            )
+
+        try:
             schema_payload = _unwrap_tool_payload(
                 self.tool_caller.call_tool(
                     "list_schema_fields",
                     {"urn": source_urn, "limit": schema_limit, "offset": 0},
                 )
             )
+        except Exception as exc:
+            if not _is_optional_metadata_error(exc):
+                raise DataHubContextError(
+                    f"DataHub MCP schema retrieval failed: {exc}"
+                ) from exc
+            warnings.append(
+                "Schema metadata is unavailable or not applicable for this entity type "
+                f"({exc})."
+            )
+
+        try:
             upstream_payload: Any = []
             downstream_payload: Any = []
             if direction in {"upstream", "both"}:
@@ -194,7 +232,9 @@ class DataHubMcpContextProvider:
         except Exception as exc:
             if isinstance(exc, DataHubContextError):
                 raise
-            raise DataHubContextError(f"DataHub MCP context retrieval failed: {exc}") from exc
+            raise DataHubContextError(
+                f"DataHub MCP lineage retrieval failed: {exc}"
+            ) from exc
 
         return ContextSnapshot(
             source_urn=source_urn,
@@ -202,13 +242,19 @@ class DataHubMcpContextProvider:
             generated_at=utc_now_iso(),
             entity=normalise_entity(source_urn, entity_payload, schema_payload),
             upstream=normalise_lineage_results(upstream_payload, direction="upstream"),
-            downstream=normalise_lineage_results(downstream_payload, direction="downstream"),
+            downstream=normalise_lineage_results(
+                downstream_payload, direction="downstream"
+            ),
             source_column=source_column,
             max_hops=max_hops,
             provider_metadata={
                 "tools": sorted(_REQUIRED_TOOLS),
                 "schema_limit": schema_limit,
                 "max_results": max_results,
+                "warnings": warnings,
+                "entity_details_available": not any(
+                    "get_entities" in warning for warning in warnings
+                ),
                 "entity_urns": sorted(_extract_urns(entity_payload)),
                 "upstream_urns": sorted(_extract_urns(upstream_payload)),
                 "downstream_urns": sorted(_extract_urns(downstream_payload)),
@@ -313,3 +359,8 @@ def _urns_in_text(text: str) -> set[str]:
         if candidate.startswith("urn:li:"):
             output.add(candidate)
     return output
+
+
+def _is_optional_metadata_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return any(marker in message for marker in _OPTIONAL_METADATA_ERROR_MARKERS)
